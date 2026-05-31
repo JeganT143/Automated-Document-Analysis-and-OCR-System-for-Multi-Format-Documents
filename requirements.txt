@@ -6,3 +6,4 @@ scikit-learn
 scipy
 pillow
 pytesseract
+streamlit>=1.32
