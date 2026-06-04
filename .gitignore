@@ -1,1 +1,24 @@
+# Virtual environment
 env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Trained model files (large binaries – teammates train their own)
+data/models/*.pkl
+
+# Raw downloaded datasets
+data/raw/
+
+# Generated test images and pipeline output
+data/test/
+output/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+*.swp
