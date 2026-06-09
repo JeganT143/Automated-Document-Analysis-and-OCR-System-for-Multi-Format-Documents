@@ -1,0 +1,20 @@
+INVOICE
+Stark Industrial Invoice No: INV-2023-5532
+200 Park Avenue Date: 04 Nov 2026
+New York, NY 10166 Due Date: 04 Dec 2026
+Bill To:
+Greenleaf Grocers
+78 Orchard Lane
+Bristol, BS1 5TR
+No. Description Qty Unit Amount
+1 Cordless drill 18V 10 LKR 89.99 LKR 899.90
+2 Hydraulic jack 2 ton 11 LKR 45.60 LKR 501.60
+3 PVC pipe 2 inch 9 LKR 6.40 LKR 57.60
+4 Circuit breaker 32A 9 LKR 18.90 LKR 170.10
+5 Paint roller set 1 LKR 7.80 LKR 7.80
+Subtotal: LKR 1,637.00
+Tax (15%): LKR 245.55
+TOTAL: LKR 1,882.55
+Thank you for your business
+Payment due within 30 days of invoice date.
+Questions? accounts@example.com

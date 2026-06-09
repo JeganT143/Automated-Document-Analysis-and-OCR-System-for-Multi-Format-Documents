@@ -1,0 +1,20 @@
+INVOICE
+Wayne Enterprises Invoice No: INV-2025-3176
+1007 Mountain Drive Date: 09 May 2026
+Gotham, NJ 07001 Due Date: 09 Jun 2026
+Bill To:
+Blue Ocean Retail
+45 Market Square
+Boston, MA 02108
+No. Description Qty Unit Amount
+1 Paint roller set 2 $7.80 $15.60
+2 Copper wire spool 10m 10 $12.00 $120.00
+3 Hydraulic jack 2 ton 3 $45.60 $136.80
+4 Solar charge controller 9 $54.30 $488.70
+5 Brass hinges box 6 $8.65 $51.90
+Subtotal: $813.00
+Tax (12%): $97.56
+TOTAL: $910.56
+Thank you for your business
+Payment due within 30 days of invoice date.
+Questions? accounts@example.com

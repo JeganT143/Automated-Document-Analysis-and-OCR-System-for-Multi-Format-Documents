@@ -1,0 +1,13 @@
+Real invoice samples – sources and licences
+============================================
+
+These freely-licensed images (Wikimedia Commons) are used for QUALITATIVE
+testing only; they have no ground truth. Re-download with
+`python scripts/download_invoices.py`.
+
+performa_invoice.jpg        : Wikimedia Commons, "Performa invoice merchandising"
+                              https://commons.wikimedia.org/wiki/File:Performa_invoice_merchandising.jpg
+uniform_invoice_taiwan.png  : Wikimedia Commons, "Uniform-Invoice Taiwan"
+                              https://commons.wikimedia.org/wiki/File:Uniform-Invoice_Taiwan.png
+bandcamp_receipt.png        : Wikimedia Commons, "Example of digital receipt at Bandcamp"
+                              https://commons.wikimedia.org/wiki/File:Example_of_digital_receipt_at_Bandcamp.webp

@@ -1,0 +1,19 @@
+INVOICE
+Wayne Enterprises Invoice No: INV-2026-3732
+1007 Mountain Drive Date: 15 Apr 2026
+Gotham, NJ 07001 Due Date: 15 May 2026
+Bill To:
+Sunrise Hardware
+12 Kandy Road
+Kurunegala, Sri Lanka
+No. Description Qty Unit Amount
+1 Insulation tape roll 9 $2.95 $26.55
+2 Ethernet cable Cat6 7 $9.25 $64.75
+3 Brass hinges box 11 $8.65 $95.15
+4 Hydraulic jack 2 ton 10 $45.60 $456.00
+Subtotal: $642.45
+Tax (8%): $51.40
+TOTAL: $693.85
+Thank you for your business
+Payment due within 30 days of invoice date.
+Questions? accounts@example.com

@@ -1,0 +1,44 @@
+{
+  "company": [
+    "Soylent Foods Co",
+    "73 Greenfield Road",
+    "Portland, OR 97201"
+  ],
+  "customer": [
+    "Blue Ocean Retail",
+    "45 Market Square",
+    "Boston, MA 02108"
+  ],
+  "currency": "GBP ",
+  "invoice_no": "INV-2023-3863",
+  "date": "05 Aug 2026",
+  "due": "05 Sep 2026",
+  "rows": [
+    {
+      "n": 1,
+      "desc": "Circuit breaker 32A",
+      "qty": 6,
+      "unit": 18.9,
+      "amount": 113.4
+    },
+    {
+      "n": 2,
+      "desc": "Cordless drill 18V",
+      "qty": 3,
+      "unit": 89.99,
+      "amount": 269.97
+    },
+    {
+      "n": 3,
+      "desc": "Stainless steel bolts M8",
+      "qty": 11,
+      "unit": 4.5,
+      "amount": 49.5
+    }
+  ],
+  "subtotal": 432.87,
+  "tax_rate": 8,
+  "tax": 34.63,
+  "total": 467.5,
+  "font_family": 3
+}

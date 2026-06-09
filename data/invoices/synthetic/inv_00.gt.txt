@@ -1,0 +1,19 @@
+INVOICE
+Hooli Analytics Invoice No: INV-2025-4288
+1 Innovation Loop Date: 13 Jan 2026
+Palo Alto, CA 94301 Due Date: 13 Feb 2026
+Bill To:
+Sunrise Hardware
+12 Kandy Road
+Kurunegala, Sri Lanka
+No. Description Qty Unit Amount
+1 Paint roller set 2 $7.80 $15.60
+2 Circuit breaker 32A 10 $18.90 $189.00
+3 Brass hinges box 8 $8.65 $69.20
+4 Hydraulic jack 2 ton 2 $45.60 $91.20
+Subtotal: $365.00
+Tax (5%): $18.25
+TOTAL: $383.25
+Thank you for your business
+Payment due within 30 days of invoice date.
+Questions? accounts@example.com

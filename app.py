@@ -18,6 +18,8 @@ from recognition import (CharacterNormalizer, HOGFeatureExtractor,
                           SVMClassifier, KNNClassifier, WordAssembler)
 from postprocessing import PostProcessor
 from main import OCRPipeline
+from tesseract_setup import ensure_tesseract, tesseract_version
+from enhanced_ocr import EnhancedOCR
 from scripts.test_with_image import generate_test_invoice, TrainedCharRecognizer
 
 # ─── Page config ──────────────────────────────────────────────────
@@ -144,9 +146,23 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("**Stage 3 – Recognition**")
 
+    _tess_ver = tesseract_version()
+    engine = st.selectbox(
+        "Recognition engine",
+        ["Enhanced (Tesseract)", "Trained model (HOG+SVM/k-NN)", "RLSA word-blocks"],
+        help="Enhanced = OCR-tuned preprocessing + adaptive PSM + Tesseract "
+             "(best accuracy). Trained model = the custom HOG classifier. "
+             "RLSA = layout-only word blocks (no text)."
+    )
+    if engine == "Enhanced (Tesseract)":
+        if _tess_ver:
+            st.caption(f"✅ Tesseract {_tess_ver} detected")
+        else:
+            st.caption("⚠️ Tesseract not found — run scripts/install_tesseract_local.sh")
+
     models = available_models()
     model_choice = st.selectbox(
-        "Classifier model",
+        "Classifier model (for trained-model engine)",
         ["None (RLSA word-blocks)"] + list(models.keys()),
         help="Train a model first: python scripts/train_classifier.py --dataset synthetic"
     )
@@ -254,8 +270,21 @@ with tab_run:
                 # Stage 3 ─ Recognition
                 progress.progress(60, "Stage 3 – Recognition…")
                 words, char_labels, char_confs = [], [], []
+                enhanced_rec = None
 
-                if model_path:
+                if engine == "Enhanced (Tesseract)":
+                    if ensure_tesseract() is not None:
+                        enhanced_rec = EnhancedOCR().run(image_path)
+                        words = enhanced_rec['words']
+                    else:
+                        st.warning("Tesseract not found — run "
+                                   "scripts/install_tesseract_local.sh. "
+                                   "Falling back to RLSA word-blocks.")
+                        with warnings.catch_warnings(record=True):
+                            warnings.simplefilter('always')
+                            pl = OCRPipeline(use_tesseract=False)
+                        words, _ = pl.recognize_text(binary, gray, layout)
+                elif engine == "Trained model (HOG+SVM/k-NN)" and model_path:
                     recognizer   = load_model(model_path)
                     if recognizer and comps:
                         char_results = recognizer.recognize_all(binary, comps)
@@ -267,7 +296,6 @@ with tab_run:
                         words = ['(no components found)']
                 else:
                     # RLSA word-block fallback
-                    from main import OCRPipeline
                     with warnings.catch_warnings(record=True):
                         warnings.simplefilter('always')
                         pl = OCRPipeline(use_tesseract=False)
@@ -332,8 +360,19 @@ with tab_run:
                         col.metric(rtype, cnt)
 
                 with v3:
-                    st.markdown('<span class="stage-badge">Stage 3</span> Character Recognition', unsafe_allow_html=True)
-                    if char_labels:
+                    st.markdown('<span class="stage-badge">Stage 3</span> Recognition', unsafe_allow_html=True)
+                    if enhanced_rec is not None:
+                        meta = enhanced_rec
+                        c1, c2, c3 = st.columns(3)
+                        c1.metric("Words", len(meta['words']))
+                        c2.metric("Mean confidence", f"{meta['mean_confidence']:.1f}")
+                        c3.metric("PSM used", meta['psm_used'])
+                        st.caption(f"Preprocessing: {meta['preprocess_info']}")
+                        st.image(np_to_pil(meta['processed_image']),
+                                 caption="OCR-tuned image fed to Tesseract "
+                                         "(deskewed, resolution-normalised)",
+                                 use_container_width=True)
+                    elif char_labels:
                         vis_rec = draw_recognition(binary, comps, char_labels, char_confs)
                         st.image(np_to_pil(vis_rec),
                                  caption="Recognised characters (green=high conf, red=low conf)",

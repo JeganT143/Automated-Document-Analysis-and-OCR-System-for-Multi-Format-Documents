@@ -1,0 +1,51 @@
+{
+  "company": [
+    "Stark Industrial",
+    "200 Park Avenue",
+    "New York, NY 10166"
+  ],
+  "customer": [
+    "Summit Outfitters",
+    "640 Alpine Road",
+    "Denver, CO 80202"
+  ],
+  "currency": "LKR ",
+  "invoice_no": "INV-2023-1638",
+  "date": "05 Dec 2026",
+  "due": "05 Jan 2026",
+  "rows": [
+    {
+      "n": 1,
+      "desc": "Safety helmet yellow",
+      "qty": 3,
+      "unit": 14.5,
+      "amount": 43.5
+    },
+    {
+      "n": 2,
+      "desc": "Insulation tape roll",
+      "qty": 8,
+      "unit": 2.95,
+      "amount": 23.6
+    },
+    {
+      "n": 3,
+      "desc": "Paint roller set",
+      "qty": 1,
+      "unit": 7.8,
+      "amount": 7.8
+    },
+    {
+      "n": 4,
+      "desc": "Welding gloves pair",
+      "qty": 11,
+      "unit": 11.2,
+      "amount": 123.2
+    }
+  ],
+  "subtotal": 198.1,
+  "tax_rate": 0,
+  "tax": 0.0,
+  "total": 198.1,
+  "font_family": 1
+}

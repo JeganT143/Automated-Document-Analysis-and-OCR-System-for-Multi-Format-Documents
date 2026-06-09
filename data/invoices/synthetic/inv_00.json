@@ -1,0 +1,51 @@
+{
+  "company": [
+    "Hooli Analytics",
+    "1 Innovation Loop",
+    "Palo Alto, CA 94301"
+  ],
+  "customer": [
+    "Sunrise Hardware",
+    "12 Kandy Road",
+    "Kurunegala, Sri Lanka"
+  ],
+  "currency": "$",
+  "invoice_no": "INV-2025-4288",
+  "date": "13 Jan 2026",
+  "due": "13 Feb 2026",
+  "rows": [
+    {
+      "n": 1,
+      "desc": "Paint roller set",
+      "qty": 2,
+      "unit": 7.8,
+      "amount": 15.6
+    },
+    {
+      "n": 2,
+      "desc": "Circuit breaker 32A",
+      "qty": 10,
+      "unit": 18.9,
+      "amount": 189.0
+    },
+    {
+      "n": 3,
+      "desc": "Brass hinges box",
+      "qty": 8,
+      "unit": 8.65,
+      "amount": 69.2
+    },
+    {
+      "n": 4,
+      "desc": "Hydraulic jack 2 ton",
+      "qty": 2,
+      "unit": 45.6,
+      "amount": 91.2
+    }
+  ],
+  "subtotal": 365.0,
+  "tax_rate": 5,
+  "tax": 18.25,
+  "total": 383.25,
+  "font_family": 0
+}
