@@ -6,4 +6,12 @@ scikit-learn
 scipy
 pillow
 pytesseract
+opencv-python
+numpy
+matplotlib
+scikit-image
+scikit-learn
+scipy
+pillow
+pytesseract
 streamlit>=1.32
