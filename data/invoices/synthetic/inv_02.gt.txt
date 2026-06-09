@@ -1,0 +1,19 @@
+INVOICE
+Stark Industrial Invoice No: INV-2023-1638
+200 Park Avenue Date: 05 Dec 2026
+New York, NY 10166 Due Date: 05 Jan 2026
+Bill To:
+Summit Outfitters
+640 Alpine Road
+Denver, CO 80202
+No. Description Qty Unit Amount
+1 Safety helmet yellow 3 LKR 14.50 LKR 43.50
+2 Insulation tape roll 8 LKR 2.95 LKR 23.60
+3 Paint roller set 1 LKR 7.80 LKR 7.80
+4 Welding gloves pair 11 LKR 11.20 LKR 123.20
+Subtotal: LKR 198.10
+Tax (0%): LKR 0.00
+TOTAL: LKR 198.10
+Thank you for your business
+Payment due within 30 days of invoice date.
+Questions? accounts@example.com

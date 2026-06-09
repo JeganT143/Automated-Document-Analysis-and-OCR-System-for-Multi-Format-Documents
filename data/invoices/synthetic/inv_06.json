@@ -1,0 +1,58 @@
+{
+  "company": [
+    "Stark Industrial",
+    "200 Park Avenue",
+    "New York, NY 10166"
+  ],
+  "customer": [
+    "Greenleaf Grocers",
+    "78 Orchard Lane",
+    "Bristol, BS1 5TR"
+  ],
+  "currency": "LKR ",
+  "invoice_no": "INV-2023-5532",
+  "date": "04 Nov 2026",
+  "due": "04 Dec 2026",
+  "rows": [
+    {
+      "n": 1,
+      "desc": "Cordless drill 18V",
+      "qty": 10,
+      "unit": 89.99,
+      "amount": 899.9
+    },
+    {
+      "n": 2,
+      "desc": "Hydraulic jack 2 ton",
+      "qty": 11,
+      "unit": 45.6,
+      "amount": 501.6
+    },
+    {
+      "n": 3,
+      "desc": "PVC pipe 2 inch",
+      "qty": 9,
+      "unit": 6.4,
+      "amount": 57.6
+    },
+    {
+      "n": 4,
+      "desc": "Circuit breaker 32A",
+      "qty": 9,
+      "unit": 18.9,
+      "amount": 170.1
+    },
+    {
+      "n": 5,
+      "desc": "Paint roller set",
+      "qty": 1,
+      "unit": 7.8,
+      "amount": 7.8
+    }
+  ],
+  "subtotal": 1637.0,
+  "tax_rate": 15,
+  "tax": 245.55,
+  "total": 1882.55,
+  "font_family": 2
+}

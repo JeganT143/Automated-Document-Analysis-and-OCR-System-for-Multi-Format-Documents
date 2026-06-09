@@ -1,0 +1,20 @@
+INVOICE
+Ceylon Tea Exports Invoice No: INV-2026-5313
+14 Galle Road Date: 14 Apr 2026
+Colombo 03, Sri Lanka Due Date: 14 May 2026
+Bill To:
+Summit Outfitters
+640 Alpine Road
+Denver, CO 80202
+No. Description Qty Unit Amount
+1 Solar charge controller 9 $54.30 $488.70
+2 Aluminium ladder 6ft 9 $64.00 $576.00
+3 Hydraulic jack 2 ton 2 $45.60 $91.20
+4 Circuit breaker 32A 7 $18.90 $132.30
+5 Cordless drill 18V 3 $89.99 $269.97
+Subtotal: $1,558.17
+Tax (0%): $0.00
+TOTAL: $1,558.17
+Thank you for your business
+Payment due within 30 days of invoice date.
+Questions? accounts@example.com

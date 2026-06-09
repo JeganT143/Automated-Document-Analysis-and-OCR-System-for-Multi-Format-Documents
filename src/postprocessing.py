@@ -188,8 +188,12 @@ class PostProcessor:
     def process_words(self, words):
         return [self.spell_corrector.correct_word(w) for w in words]
 
-    def format_output(self, words, regions=None, fmt='json'):
-        corrected_words = self.process_words(words)
+    def format_output(self, words, regions=None, fmt='json', spell_correct=False):
+        # Spell correction is OFF by default: the built-in dictionary is tiny,
+        # so "correcting" real OCR output corrupts valid words
+        # (e.g. "Kandy"->"And", "Road"->"Had"). Only enable it with a proper
+        # domain dictionary loaded via SpellCorrector.load_dictionary().
+        corrected_words = self.process_words(words) if spell_correct else list(words)
         structured = self.formatter.words_to_structured(corrected_words, regions)
         if fmt == 'json':
             return self.formatter.to_json(structured)

@@ -1,3 +1,5 @@
+# NOTE: also requires the Tesseract *engine* (a system binary, not a pip pkg):
+#   sudo apt install tesseract-ocr      (or)   bash scripts/install_tesseract_local.sh
 opencv-python
 numpy
 matplotlib

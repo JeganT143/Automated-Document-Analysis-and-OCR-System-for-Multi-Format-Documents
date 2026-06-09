@@ -18,9 +18,14 @@ from preprocessing import Preprocessor
 from layout_analysis import LayoutAnalyzer, RLSAProcessor, ConnectedComponentAnalyzer
 from recognition import CharacterRecognizer, CharacterNormalizer, WordAssembler
 from postprocessing import PostProcessor
+from tesseract_setup import ensure_tesseract
+from enhanced_ocr import EnhancedOCR
 
 
 def _tesseract_available():
+    # Wire up a system OR user-local Tesseract before probing for it.
+    if ensure_tesseract() is None:
+        return False
     try:
         import pytesseract
         pytesseract.get_tesseract_version()
@@ -38,23 +43,38 @@ class OCRPipeline:
         confidence_threshold=0.55,
         spell_max_distance=2,
         use_tesseract=True,
+        recognition='auto',
+        spell_correct=False,
         model_path=None,
         output_format='json',
     ):
         self.binarization = binarization
         self.correct_skew = correct_skew
         self.output_format = output_format
+        self.spell_correct = spell_correct
+
+        # Recognition mode:
+        #   'auto'      – enhanced Tesseract pipeline if available, else fallback
+        #   'enhanced'  – OCR-tuned preprocessing + adaptive PSM (best accuracy)
+        #   'tesseract' – plain Tesseract on the binarised image (legacy)
+        #   'custom'    – HOG + SVM/k-NN character classifier
+        #   'fallback'  – RLSA word-block detection (no text content)
+        self.recognition = recognition
 
         # Auto-detect Tesseract; warn and fall back when not installed
         if use_tesseract and not _tesseract_available():
             import warnings
             warnings.warn(
                 "Tesseract not found – falling back to custom HOG+classifier pipeline. "
-                "Install tesseract-ocr for better accuracy.",
+                "Install it with scripts/install_tesseract_local.sh (no root) or "
+                "`sudo apt install tesseract-ocr` for far better accuracy.",
                 RuntimeWarning, stacklevel=2,
             )
             use_tesseract = False
         self.use_tesseract = use_tesseract
+
+        # Enhanced engine is the default whenever Tesseract is available.
+        self.enhanced = EnhancedOCR() if use_tesseract else None
 
         self.preprocessor = Preprocessor()
         self.layout_analyzer = LayoutAnalyzer()
@@ -68,6 +88,8 @@ class OCRPipeline:
 
         if model_path and os.path.isfile(model_path):
             self.char_recognizer.load_model(model_path)
+            if recognition == 'auto':
+                self.recognition = 'custom'
 
     # ------------------------------------------------------------------
     # Stage 1 – Preprocessing
@@ -89,8 +111,17 @@ class OCRPipeline:
     # ------------------------------------------------------------------
     # Stage 3 – Text Recognition
     # ------------------------------------------------------------------
-    def recognize_text(self, binary_image, gray_image, layout_result):
-        if self.use_tesseract:
+    def recognize_text(self, binary_image, gray_image, layout_result, image=None):
+        # Enhanced path (default): OCR-tuned preprocessing + adaptive PSM,
+        # run on the ORIGINAL image (full resolution) for best accuracy.
+        if self.enhanced is not None and self.recognition in ('auto', 'enhanced'):
+            src = image if image is not None else gray_image
+            rec = self.enhanced.run(src)
+            self.last_recognition = rec
+            return rec['words'], []
+
+        # Legacy plain-Tesseract path on the binarised image.
+        if self.recognition == 'tesseract' and self.use_tesseract:
             return self._tesseract_recognition(gray_image)
 
         components = layout_result['components']
@@ -140,6 +171,7 @@ class OCRPipeline:
             words,
             regions=regions,
             fmt=self.output_format,
+            spell_correct=self.spell_correct,
         )
 
     # ------------------------------------------------------------------
@@ -162,8 +194,9 @@ class OCRPipeline:
         regions = layout['regions']
         t2 = time.time()
 
-        # Stage 3
-        words, char_labels = self.recognize_text(binary, gray, layout)
+        # Stage 3 – recognition runs on the original image for the enhanced path
+        words, char_labels = self.recognize_text(binary, gray, layout,
+                                                 image=image_path)
         t3 = time.time()
 
         # Stage 4
@@ -251,6 +284,17 @@ def _build_arg_parser():
         help='Use custom HOG+SVM/k-NN instead of Tesseract'
     )
     parser.add_argument(
+        '--recognition',
+        choices=['auto', 'enhanced', 'tesseract', 'custom', 'fallback'],
+        default='auto',
+        help='Recognition strategy (default: auto -> enhanced when available)'
+    )
+    parser.add_argument(
+        '--spell-correct', action='store_true',
+        help='Enable dictionary spell correction (off by default; needs a '
+             'domain dictionary to be safe)'
+    )
+    parser.add_argument(
         '--model', default=None,
         help='Path to pre-trained classifier model (.pkl)'
     )
@@ -275,6 +319,8 @@ def main():
         correct_skew=not args.no_deskew,
         classifier=args.classifier,
         use_tesseract=not args.no_tesseract,
+        recognition=args.recognition,
+        spell_correct=args.spell_correct,
         model_path=args.model,
         output_format=args.output_format,
     )

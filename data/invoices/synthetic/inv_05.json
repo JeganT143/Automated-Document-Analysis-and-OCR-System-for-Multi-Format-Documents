@@ -1,0 +1,51 @@
+{
+  "company": [
+    "Wayne Enterprises",
+    "1007 Mountain Drive",
+    "Gotham, NJ 07001"
+  ],
+  "customer": [
+    "Sunrise Hardware",
+    "12 Kandy Road",
+    "Kurunegala, Sri Lanka"
+  ],
+  "currency": "$",
+  "invoice_no": "INV-2026-3732",
+  "date": "15 Apr 2026",
+  "due": "15 May 2026",
+  "rows": [
+    {
+      "n": 1,
+      "desc": "Insulation tape roll",
+      "qty": 9,
+      "unit": 2.95,
+      "amount": 26.55
+    },
+    {
+      "n": 2,
+      "desc": "Ethernet cable Cat6",
+      "qty": 7,
+      "unit": 9.25,
+      "amount": 64.75
+    },
+    {
+      "n": 3,
+      "desc": "Brass hinges box",
+      "qty": 11,
+      "unit": 8.65,
+      "amount": 95.15
+    },
+    {
+      "n": 4,
+      "desc": "Hydraulic jack 2 ton",
+      "qty": 10,
+      "unit": 45.6,
+      "amount": 456.0
+    }
+  ],
+  "subtotal": 642.45,
+  "tax_rate": 8,
+  "tax": 51.4,
+  "total": 693.85,
+  "font_family": 0
+}
