@@ -1,0 +1,21 @@
+INVOICE
+Soylent Foods Co Invoice No: INV-2024-9958
+73 Greenfield Road Date: 07 Jul 2026
+Portland, OR 97201 Due Date: 07 Aug 2026
+Bill To:
+Harbor Freight LLC
+55 Dockside Blvd
+Tampa, FL 33602
+No. Description Qty Unit Amount
+1 Insulation tape roll 4 USD 2.95 USD 11.80
+2 Circuit breaker 32A 3 USD 18.90 USD 56.70
+3 Digital multimeter 7 USD 32.40 USD 226.80
+4 Safety helmet yellow 1 USD 14.50 USD 14.50
+5 Welding gloves pair 1 USD 11.20 USD 11.20
+6 PVC pipe 2 inch 2 USD 6.40 USD 12.80
+Subtotal: USD 333.80
+Tax (8%): USD 26.70
+TOTAL: USD 360.50
+Thank you for your business
+Payment due within 30 days of invoice date.
+Questions? accounts@example.com

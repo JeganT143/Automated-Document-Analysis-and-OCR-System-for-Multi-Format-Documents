@@ -237,15 +237,26 @@ def run_pipeline(image_path, model_path=None, output_format='json',
         else:
             print("      no character components found")
     else:
-        # Fall back to RLSA word-block detection
-        from main import OCRPipeline
-        import warnings
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter('always')
-            pl    = OCRPipeline(use_tesseract=False, output_format=output_format)
-        words, _ = pl.recognize_text(binary, gray, layout)
-        print(f"      word blocks detected: {len(words)}  "
-              f"(no model loaded – using RLSA fallback)")
+        # Default: enhanced Tesseract pipeline (best accuracy) on the original.
+        from tesseract_setup import ensure_tesseract
+        if ensure_tesseract() is not None:
+            from enhanced_ocr import EnhancedOCR
+            rec   = EnhancedOCR().run(image_path)
+            words = rec['words']
+            print(f"      enhanced OCR: {len(words)} words  "
+                  f"| mean confidence {rec['mean_confidence']}  "
+                  f"| psm {rec['psm_used']}  | {rec['preprocess_info']}")
+        else:
+            # No Tesseract available – RLSA word-block detection only.
+            from main import OCRPipeline
+            import warnings
+            with warnings.catch_warnings(record=True):
+                warnings.simplefilter('always')
+                pl = OCRPipeline(use_tesseract=False, output_format=output_format)
+            words, _ = pl.recognize_text(binary, gray, layout)
+            print(f"      word blocks detected: {len(words)}  "
+                  f"(no Tesseract – RLSA fallback; run "
+                  f"scripts/install_tesseract_local.sh)")
 
     # ── Stage 4: Post-Processing ───────────────────────────────────
     print("[4/4] Post-processing…")

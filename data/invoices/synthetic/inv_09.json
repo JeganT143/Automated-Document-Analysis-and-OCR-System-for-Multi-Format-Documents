@@ -1,0 +1,58 @@
+{
+  "company": [
+    "Northwind Traders",
+    "1420 Commerce Street",
+    "Seattle, WA 98101"
+  ],
+  "customer": [
+    "Sunrise Hardware",
+    "12 Kandy Road",
+    "Kurunegala, Sri Lanka"
+  ],
+  "currency": "EUR ",
+  "invoice_no": "INV-2026-9990",
+  "date": "12 Sep 2026",
+  "due": "12 Oct 2026",
+  "rows": [
+    {
+      "n": 1,
+      "desc": "Insulation tape roll",
+      "qty": 5,
+      "unit": 2.95,
+      "amount": 14.75
+    },
+    {
+      "n": 2,
+      "desc": "Solar charge controller",
+      "qty": 10,
+      "unit": 54.3,
+      "amount": 543.0
+    },
+    {
+      "n": 3,
+      "desc": "Cordless drill 18V",
+      "qty": 3,
+      "unit": 89.99,
+      "amount": 269.97
+    },
+    {
+      "n": 4,
+      "desc": "Welding gloves pair",
+      "qty": 1,
+      "unit": 11.2,
+      "amount": 11.2
+    },
+    {
+      "n": 5,
+      "desc": "Copper wire spool 10m",
+      "qty": 6,
+      "unit": 12.0,
+      "amount": 72.0
+    }
+  ],
+  "subtotal": 910.92,
+  "tax_rate": 12,
+  "tax": 109.31,
+  "total": 1020.23,
+  "font_family": 1
+}
