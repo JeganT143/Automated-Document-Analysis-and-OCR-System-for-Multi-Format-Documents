@@ -13,6 +13,8 @@ to reading-order differences (which matter for multi-column invoices):
 import re
 from collections import Counter
 
+from postprocessing import extract_fields  # field extraction lives with post-processing
+
 
 # ---------------------------------------------------------------------------
 # Edit distance
@@ -100,31 +102,8 @@ def token_recall(reference, hypothesis):
 
 
 # ---------------------------------------------------------------------------
-# Invoice field extraction (content-level accuracy)
+# Invoice field accuracy (uses extract_fields from postprocessing)
 # ---------------------------------------------------------------------------
-def extract_fields(text):
-    """Best-effort extraction of key invoice fields from OCR text."""
-    t = text.replace("\n", " ")
-    fields = {}
-
-    m = re.search(r"INV[-\s]?(\d{4})[-\s]?(\d{3,4})", t, re.I)
-    if m:
-        fields["invoice_no"] = f"INV-{m.group(1)}-{m.group(2)}"
-
-    # grand total: amount after a standalone "TOTAL" (NOT "subtotal").
-    # Take the last such match – the grand total comes last on an invoice.
-    totals = re.findall(r"(?<![A-Za-z])total\b[^0-9]{0,12}([0-9][0-9,]*\.\d{2})",
-                        t, re.I)
-    if totals:
-        fields["total"] = totals[-1].replace(",", "")
-
-    m = re.search(r"\b(\d{1,2})\s*([A-Za-z]{3})\s*(20\d{2})\b", t)
-    if m:
-        fields["date"] = f"{int(m.group(1)):02d} {m.group(2).title()} {m.group(3)}"
-
-    return fields
-
-
 def field_accuracy(gt_struct, ocr_text):
     """Compare extracted fields against the structured ground truth."""
     got = extract_fields(ocr_text)

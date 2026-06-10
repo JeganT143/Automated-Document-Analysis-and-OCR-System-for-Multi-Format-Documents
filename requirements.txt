@@ -2,10 +2,7 @@
 #   sudo apt install tesseract-ocr      (or)   bash scripts/install_tesseract_local.sh
 opencv-python
 numpy
-matplotlib
-scikit-image
-scikit-learn
-scipy
-pillow
-pytesseract
-streamlit>=1.32
+pytesseract        # Python wrapper around the Tesseract engine
+pillow             # invoice rendering for the labelled dataset
+streamlit>=1.32    # web UI
+requests           # download real test images from Wikimedia Commons
