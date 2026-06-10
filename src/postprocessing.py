@@ -74,7 +74,20 @@ class OutputFormatter:
     """Render the pipeline result dict to JSON / plain-text / CSV."""
 
     def to_json(self, result):
-        return json.dumps(self._clean(result), indent=2, ensure_ascii=False)
+        # default= makes serialisation crash-proof for any stray numpy values
+        return json.dumps(self._clean(result), indent=2, ensure_ascii=False,
+                          default=self._jsonable)
+
+    @staticmethod
+    def _jsonable(o):
+        import numpy as np
+        if isinstance(o, np.integer):
+            return int(o)
+        if isinstance(o, np.floating):
+            return float(o)
+        if isinstance(o, np.ndarray):
+            return None
+        return str(o)
 
     def to_txt(self, result):
         return result.get("text", "")
@@ -100,9 +113,10 @@ class OutputFormatter:
 
     @staticmethod
     def _clean(result):
-        """Drop non-serialisable entries (e.g. the processed image array)."""
+        """Drop non-serialisable entries (image arrays, etc.)."""
+        import numpy as np
         return {k: v for k, v in result.items()
-                if k not in ("processed_image",)}
+                if not isinstance(v, np.ndarray)}
 
     def save(self, content, filepath):
         with open(filepath, "w", encoding="utf-8") as f:
