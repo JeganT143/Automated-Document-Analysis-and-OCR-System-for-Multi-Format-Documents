@@ -44,8 +44,8 @@ st.markdown("""
        --mono:'IBM Plex Mono',monospace; --serif:'Newsreader',Georgia,serif; }
 
 .stApp{ background:var(--paper); color:var(--ink); font-family:var(--sans); }
-.block-container{ max-width:820px; padding-top:2.2rem; padding-bottom:4rem; }
-#MainMenu, [data-testid="stToolbar"]{ visibility:hidden; }
+.block-container{ max-width:820px; padding-top:3.2rem; padding-bottom:4rem; }
+#MainMenu, [data-testid="stToolbar"], [data-testid="stHeader"]{ display:none; }
 ::selection{ background:rgba(43,75,126,.16); }
 
 /* header */
