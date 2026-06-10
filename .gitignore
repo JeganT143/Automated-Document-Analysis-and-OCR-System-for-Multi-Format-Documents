@@ -6,14 +6,10 @@ __pycache__/
 *.py[cod]
 *.pyo
 
-# Trained model files (large binaries – teammates train their own)
-data/models/*.pkl
+# Datasets (regenerable: scripts/make_invoice_dataset.py + scripts/download_invoices.py)
+data/
 
-# Raw downloaded datasets
-data/raw/
-
-# Generated test images and pipeline output
-data/test/
+# Pipeline output
 output/
 
 # Jupyter checkpoints
@@ -22,3 +18,4 @@ output/
 # OS / editor
 .DS_Store
 *.swp
+*.log

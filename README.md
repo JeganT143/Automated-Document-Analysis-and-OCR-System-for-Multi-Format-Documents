@@ -1,87 +1,86 @@
-# Automated Document Analysis and OCR System for Multi Format Documents
+# Automated Document Analysis and OCR System for Multi-Format Documents
 
-## Introduction 
+A single, end-to-end pipeline that turns a document image (invoice, receipt,
+form…) into clean, structured, machine-readable text.
 
-This project aims to create a robost classical computer vision based solution capable of processing various document types and extracting structured text data 
+*EE7204 / EC7205 – Image Processing and Computer Vision*
+*Department of Electrical & Information Engineering, University of Ruhuna*
 
-### Project Scope
-- Preporcess document images 
-    - Noice reduction 
-    - Binarization 
-    - Skew correction 
-- Analyze document layout and segment regions 
-- Detect and localize text regions 
-- Classify characters using machine learning 
-- Post-process recognized text 
-    - spell correction 
-    - formatting
-- Output Structured machine readable data 
+```
+image ─▶ preprocess ─▶ layout analysis ─▶ recognise ─▶ post-process ─▶ JSON / TXT / CSV
+        (classical CV)   (classical CV)   (Tesseract,    (safe clean-up
+                                          adaptive PSM)   + field extraction)
+```
+
+There is **one** recognition pipeline (`src/pipeline.py`). The earlier toy
+paths (HOG+SVM / k-NN / template-matching / `[word]` placeholder fallback) have
+been removed.
 
 ---
 
-## Accuracy Enhancements (`jgn/enhancement`)
+## The pipeline
 
-The recognition accuracy was originally **very low**. A measured root-cause
-analysis (see `scripts/evaluate.py`) found three concrete problems:
+| Stage | Module | What it does |
+|-------|--------|--------------|
+| 1. Preprocess | `src/pipeline.py` (`OCRPreprocessor`) | auto-invert dark pages · illumination flattening · projection-profile deskew · **resolution normalisation** (up-scale small text) · light denoise. Keeps a clean **grayscale** image — no destructive binarisation. |
+| 2. Layout analysis | `src/layout_analysis.py` | connected components · fast morphological region smearing · region classification (text / table / image / header-footer). |
+| 3. Recognise | `src/pipeline.py` (`DocumentOCRPipeline`) | Tesseract LSTM with **adaptive page segmentation** (tries PSM 4/6/3, keeps the most confident) and a CLAHE retry for hard scans. |
+| 4. Post-process | `src/postprocessing.py` | **safe** clean-up (de-hyphenation, spacing, currency) that never rewrites words · invoice field extraction · JSON / TXT / CSV. |
 
-1. **No text was produced at all.** With Tesseract not installed, the pipeline
-   silently fell back to emitting `[word]` placeholders → **0 %** of the actual
-   text was recovered.
-2. **The preprocessing actively hurt recognition.** Feeding Tesseract the
-   bilateral-filtered + Otsu-binarised + morphologically-opened image was *worse*
-   than handing it the raw grayscale (Tesseract has its own, better binariser).
-3. **Post-processing corrupted correct text.** The spell-corrector mapped valid
-   words onto a ~100-word dictionary (`Kandy → And`, `Road → Had`, `jack → back`).
+Supporting modules: `src/tesseract_setup.py` (finds a system *or* user-local
+Tesseract) and `src/evaluation.py` (CER / WER / token-F1 / field metrics).
 
-### What changed
-- `src/enhanced_ocr.py` – an OCR-tuned recognition engine:
-  - illumination flattening (only when lighting is uneven),
-  - robust **projection-profile deskew** (better than Hough-on-edges for text),
-  - **resolution normalisation** – up-scales so text x-height hits Tesseract's
-    sweet spot (the single biggest win for low-DPI scans),
-  - **adaptive page segmentation** – tries several PSM modes and keeps the one
-    Tesseract is most confident about (with a fast path when the first is good),
-  - hands Tesseract a clean grayscale image (no destructive binarisation).
-- `src/tesseract_setup.py` – auto-detects a system **or** user-local Tesseract.
-- Spell-correction is now **off by default** (it needs a real dictionary to be safe).
-- The enhanced engine is the **default** recognition path in `main.py`, the
-  Streamlit app, and `scripts/test_with_image.py`.
+## Why accuracy was low before — and what fixed it
 
-### Measured results
-10 labelled synthetic invoices (real fonts, scan-like noise + skew), via
-`python scripts/evaluate.py --compare wordblock tess_raw enhanced`:
+A measured root-cause analysis (`scripts/evaluate.py --baseline`) found:
 
-| mode | CER ↓ | WER ↓ | token-F1 ↑ | fields (no/total/date) |
-|------|------:|------:|-----------:|------------------------|
-| `wordblock` (original default) | 89.7 % | 100 % | 0 % | 0 / 0 / 0 % |
-| `tess_raw` (plain Tesseract)   | 7.0 %  | 15.0 %| 92.3 %| 100 / 90 / 100 % |
-| **`enhanced` (this work)**     | **0.2 %** | **1.8 %** | **98.7 %** | **100 / 90 / 100 %** |
+1. **No text at all.** Without Tesseract installed, the old default emitted
+   `[word]` placeholders → **0 %** of the text recovered (CER ≈ 90 %).
+2. **Preprocessing hurt OCR.** Bilateral + Otsu + morphology was *worse* than
+   raw grayscale — Tesseract has its own, better binariser.
+3. **Post-processing corrupted text.** A ~100-word spell-corrector mapped valid
+   words to nonsense (`Kandy → And`). It is now removed; clean-up is safe-only.
 
-Character accuracy: **~10 % → ~99.8 %**. The gain holds on heavily degraded
-scans (CER 0.2 %, all fields 100 %) and on real downloaded invoices.
+The single pipeline keeps only the preprocessing that *helps* OCR, adds
+resolution normalisation + adaptive PSM, and structures the output.
+
+## Measured results
+
+Labelled synthetic invoices (rendered with real fonts, scan-like noise + skew —
+exact ground truth). `python scripts/evaluate.py --baseline`:
+
+| Configuration | CER ↓ | Char acc. | WER ↓ | Token-F1 ↑ |
+|---|--:|--:|--:|--:|
+| Raw Tesseract (`--psm 6`) | 6.3 % | 93.7 % | 13.8 % | 92.8 % |
+| **This pipeline** | **0.2 %** | **99.8 %** | **1.7 %** | **98.8 %** |
+
+It was also run on **30 real document images** downloaded from Wikimedia
+Commons — see [`RESULTS.md`](RESULTS.md) for the full per-image table.
 
 ## Quick start
 
 ```bash
-python3 -m venv env && source env/bin/activate    # if venv pkg missing, see below
+# 1. environment
+python3 -m venv env && source env/bin/activate
 pip install -r requirements.txt
 
-# Tesseract engine (pick one):
-sudo apt install tesseract-ocr                     # normal machines
-bash scripts/install_tesseract_local.sh           # no-root: unpacks to ~/.local
+# 2. Tesseract engine (pick one)
+sudo apt install tesseract-ocr            # normal machines
+bash scripts/install_tesseract_local.sh   # NO root: unpacks to ~/.local/opt/tesseract
 
-# Run on an image (enhanced engine is the default):
+# 3. run on an image
 python src/main.py path/to/invoice.png --format txt
 
-# Streamlit UI:
+# 4. web UI
 streamlit run app.py
 ```
 
 ## Data & evaluation
 
 ```bash
-python scripts/download_invoices.py               # real samples (qualitative)
-python scripts/make_invoice_dataset.py --n 10 --degrade scan   # labelled set
-python scripts/evaluate.py --compare wordblock tess_raw enhanced
+python scripts/make_invoice_dataset.py --n 12 --degrade scan   # labelled set (exact GT)
+python scripts/download_invoices.py --n 30                     # 30 real images (no GT)
+python scripts/evaluate.py --baseline --report RESULTS.md      # full evaluation + report
 ```
 
+Datasets are git-ignored (regenerable with the scripts above).
