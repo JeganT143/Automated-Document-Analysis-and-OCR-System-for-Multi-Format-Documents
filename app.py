@@ -1,8 +1,11 @@
 """
-Streamlit UI – Automated Document Analysis and OCR System.
+Automated Document Analysis & OCR System — minimal academic UI.
 
-A single, end-to-end pipeline:
-    preprocess -> layout analysis -> recognise (adaptive Tesseract) -> post-process
+Shows a document moving through the single pipeline, with the real image at
+every stage:
+
+    input → grayscale → polarity → flatten → deskew → up-scale → denoise
+          → layout regions → recognition → structured output
 
 Run:  streamlit run app.py
 """
@@ -11,6 +14,10 @@ import os
 import sys
 import time
 
+import io
+import csv
+import json
+
 import numpy as np
 import cv2
 import streamlit as st
@@ -18,250 +25,294 @@ import streamlit as st
 ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 sys.path.insert(0, ROOT)
+sys.path.insert(0, os.path.join(ROOT, "scripts"))
 
 from pipeline import DocumentOCRPipeline
 from tesseract_setup import tesseract_version
 
-st.set_page_config(page_title="Document OCR System", page_icon="📄",
-                   layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Document OCR Pipeline", page_icon="·",
+                   layout="centered", initial_sidebar_state="collapsed")
 
+# ── minimal academic styling ────────────────────────────────────────────
 st.markdown("""
 <style>
-  .main-header {font-size:2rem;font-weight:700;color:#1f4e79;
-    border-bottom:3px solid #2e86c1;padding-bottom:0.4rem;margin-bottom:1rem;}
-  .stage-badge {display:inline-block;background:#2e86c1;color:white;
-    border-radius:12px;padding:2px 10px;font-size:0.78rem;font-weight:600;margin-right:6px;}
-  .warn-box {background:#fef9e7;border-left:4px solid #f39c12;
-    padding:0.6rem 1rem;border-radius:6px;}
-  .ok-box {background:#eafaf1;border-left:4px solid #27ae60;
-    padding:0.6rem 1rem;border-radius:6px;}
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root{ --ink:#1A1B1D; --muted:#646A72; --faint:#9AA0A8; --rule:#E5E3DC;
+       --accent:#2B4B7E; --paper:#FBFBF9;
+       --sans:'IBM Plex Sans',system-ui,sans-serif;
+       --mono:'IBM Plex Mono',monospace; --serif:'Newsreader',Georgia,serif; }
+
+.stApp{ background:var(--paper); color:var(--ink); font-family:var(--sans); }
+.block-container{ max-width:820px; padding-top:2.2rem; padding-bottom:4rem; }
+#MainMenu, [data-testid="stToolbar"]{ visibility:hidden; }
+::selection{ background:rgba(43,75,126,.16); }
+
+/* header */
+.kicker{ font-family:var(--mono); font-size:.74rem; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--accent); margin:0 0 .35rem; }
+h1.title{ font-family:var(--serif); font-weight:500; font-size:2.3rem; line-height:1.1;
+  letter-spacing:-.01em; margin:0; color:var(--ink); }
+.lede{ color:var(--muted); font-size:1rem; line-height:1.55; margin:.7rem 0 0; max-width:62ch; }
+.hr{ height:1px; background:var(--rule); border:0; margin:1.4rem 0; }
+
+/* section label */
+.seclabel{ font-family:var(--mono); font-size:.72rem; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--faint); margin:2rem 0 .8rem; }
+
+/* stage heading */
+.stg{ display:flex; align-items:baseline; gap:.7rem; margin:.2rem 0 .15rem; }
+.stg .no{ font-family:var(--mono); font-size:.82rem; color:var(--accent); font-weight:500; }
+.stg .nm{ font-family:var(--serif); font-size:1.18rem; font-weight:600; color:var(--ink); }
+.stg .mt{ font-family:var(--mono); font-size:.74rem; color:var(--faint); margin-left:auto; }
+.ds{ color:var(--muted); font-size:.9rem; margin:0 0 .7rem; }
+
+/* images: plain, on paper, hairline frame */
+[data-testid="stImage"]{ border:1px solid var(--rule); border-radius:4px; background:#fff; padding:6px; }
+[data-testid="stImage"] img{ border-radius:2px; }
+[data-testid="stImageCaption"]{ font-family:var(--mono)!important; font-size:.72rem!important; color:var(--faint)!important; }
+
+/* output */
+.kv{ display:flex; gap:1rem; font-family:var(--mono); font-size:.86rem; padding:.45rem 0;
+  border-bottom:1px solid var(--rule); }
+.kv .k{ color:var(--muted); min-width:120px; text-transform:uppercase; font-size:.74rem; letter-spacing:.05em; }
+.kv .v{ color:var(--ink); font-weight:500; }
+.ocr{ font-family:var(--mono); font-size:.82rem; line-height:1.6; color:var(--ink); background:#fff;
+  border:1px solid var(--rule); border-radius:4px; padding:.9rem 1rem; max-height:300px; overflow:auto; white-space:pre-wrap; }
+.summary{ font-family:var(--mono); font-size:.82rem; color:var(--muted); }
+.summary b{ color:var(--ink); font-weight:600; }
+
+/* buttons: quiet, academic */
+.stButton>button, .stDownloadButton>button{ font-family:var(--sans); font-weight:500; border-radius:4px;
+  border:1px solid var(--rule); background:#fff; color:var(--ink); }
+.stButton>button:hover, .stDownloadButton>button:hover{ border-color:var(--accent); color:var(--accent); }
+.stButton>button[kind="primary"]{ background:var(--accent); color:#fff; border:1px solid var(--accent); }
+.stButton>button[kind="primary"]:hover{ background:#23416d; color:#fff; }
+
+.stRadio label, .stSelectbox label, .stCheckbox label{ font-family:var(--mono)!important;
+  font-size:.74rem!important; color:var(--muted)!important; }
+.foot{ font-family:var(--mono); font-size:.72rem; color:var(--faint); margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--rule); }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ─── helpers ──────────────────────────────────────────────────────
+# ── helpers ──────────────────────────────────────────────────────────────
 @st.cache_resource
 def get_pipeline(lang):
     return DocumentOCRPipeline(lang=lang)
 
 
-def gray_to_rgb(g):
-    if g.ndim == 2:
-        return cv2.cvtColor(g, cv2.COLOR_GRAY2RGB)
-    return cv2.cvtColor(g, cv2.COLOR_BGR2RGB)
+def to_rgb(img):
+    return cv2.cvtColor(img, cv2.COLOR_GRAY2RGB) if img.ndim == 2 else cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+
+def fit(img, max_w=760):
+    h, w = img.shape[:2]
+    if w > max_w:
+        img = cv2.resize(img, (max_w, int(h * max_w / w)), interpolation=cv2.INTER_AREA)
+    return img
+
+
+def conf_color(c):  # muted, print-friendly
+    return (47, 125, 91) if c >= 75 else (184, 134, 11) if c >= 50 else (176, 74, 74)
 
 
 def draw_regions(gray, regions):
-    colors = {"header_footer": (255, 140, 0), "table": (0, 160, 255),
-              "text": (30, 180, 30), "image": (180, 0, 220), "unknown": (130, 130, 130)}
+    colors = {"header_footer": (122, 127, 135), "table": (184, 134, 11),
+              "text": (43, 75, 126), "image": (125, 91, 166), "unknown": (150, 150, 150)}
     vis = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
     for r in regions:
         x, y, w, h = r["bbox"]
-        c = colors.get(r["type"], (130, 130, 130))
+        c = colors.get(r["type"], (150, 150, 150))[::-1]
         cv2.rectangle(vis, (x, y), (x + w, y + h), c, 2)
-        cv2.putText(vis, r["type"][:4], (x + 3, max(y - 4, 12)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.45, c, 1)
     return cv2.cvtColor(vis, cv2.COLOR_BGR2RGB)
 
 
-def draw_word_boxes(gray, word_boxes):
+def draw_word_boxes(gray, boxes):
     vis = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
-    for w in word_boxes:
-        x, y, ww, hh = w["bbox"]
-        c = w["conf"] / 100.0
-        color = (0, int(c * 200), int((1 - c) * 220))   # green=high, red=low
-        cv2.rectangle(vis, (x, y), (x + ww, y + hh), color, 1)
+    for b in boxes:
+        x, y, w, h = b["bbox"]
+        cv2.rectangle(vis, (x, y), (x + w, y + h), conf_color(b["conf"])[::-1], 1)
     return cv2.cvtColor(vis, cv2.COLOR_BGR2RGB)
 
 
-def make_sample_invoice(level):
-    """Render a labelled-style invoice using the dataset generator."""
-    sys.path.insert(0, os.path.join(ROOT, "scripts"))
+def scale_boxes(items, proc, disp):
+    s = disp.shape[1] / proc.shape[1]
+    return [{**it, "bbox": tuple(int(v * s) for v in it["bbox"])} for it in items]
+
+
+def export_result(res, fmt):
+    """Serialise the result here in app.py (re-run from disk each time, so it
+    never uses a stale cached object). Image arrays are dropped."""
+    fmt = fmt.lower()
+    if fmt == "txt":
+        return res.get("text", "")
+    if fmt == "csv":
+        buf = io.StringIO()
+        w = csv.writer(buf)
+        w.writerow(["index", "word"])
+        for i, word in enumerate(res.get("words", [])):
+            w.writerow([i, word])
+        return buf.getvalue()
+
+    def _j(o):
+        if isinstance(o, np.integer):
+            return int(o)
+        if isinstance(o, np.floating):
+            return float(o)
+        if isinstance(o, np.ndarray):
+            return None
+        return str(o)
+    clean = {k: v for k, v in res.items() if not isinstance(v, np.ndarray)}
+    return json.dumps(clean, indent=2, ensure_ascii=False, default=_j)
+
+
+def make_sample(level):
     import make_invoice_dataset as mk
-    rng = np.random.default_rng(int(time.time()) % 100000)
-    data = mk.build_invoice(rng)
-    img, _ = mk.render_invoice(data)
+    rng = np.random.default_rng(int(time.time() * 7) % 99999)
+    img, _ = mk.render_invoice(mk.build_invoice(rng))
     return mk.degrade(img, rng, level=level)
 
 
-# ─── sidebar ──────────────────────────────────────────────────────
+def stage_meta(stage):
+    h, w = stage["image"].shape[:2]
+    m, k = stage["meta"], stage["key"]
+    if k == "invert":
+        return "flip applied" if m.get("applied") else "no flip needed"
+    if k == "flatten":
+        return "illumination flattened" if m.get("applied") else "lighting even — skipped"
+    if k == "deskew":
+        return f"angle {m.get('angle', 0):+.2f}°"
+    if k == "upscale":
+        return f"×{m.get('scale', 1):.2f}  →  {w}×{h}px"
+    if k == "denoise":
+        return "bilateral filter"
+    return f"{w}×{h}px"
+
+
+def section(num, name, meta, desc):
+    st.markdown(f'<div class="stg"><span class="no">{num}</span>'
+                f'<span class="nm">{name}</span><span class="mt">{meta}</span></div>'
+                f'<div class="ds">{desc}</div>', unsafe_allow_html=True)
+
+
+# ── header ───────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("## ⚙️ Pipeline Settings")
-    lang = st.selectbox("OCR language", ["eng"], help="Tesseract language pack")
-    analyze_layout = st.checkbox("Run layout analysis", value=True,
-                                 help="Detect text / table / header regions")
+    st.markdown('<div style="font-family:var(--mono);font-size:.75rem;color:#646A72;line-height:1.8">'
+                '<b>EE7204 / EC7205</b><br>Image Processing &amp; Computer Vision<br>'
+                'Dept. of EIE, University of Ruhuna</div>', unsafe_allow_html=True)
+    st.divider()
+    lang = st.selectbox("OCR language", ["eng"])
+    analyze_layout = st.checkbox("Layout analysis", value=True)
     output_format = st.selectbox("Output format", ["json", "txt", "csv"])
-    st.markdown("---")
-    ver = tesseract_version()
-    if ver:
-        st.markdown(f'<div class="ok-box">Tesseract <b>{ver}</b> ready</div>',
-                    unsafe_allow_html=True)
-    else:
-        st.markdown('<div class="warn-box">Tesseract not found.<br>'
-                    'Run <code>scripts/install_tesseract_local.sh</code></div>',
-                    unsafe_allow_html=True)
-    st.markdown("---")
-    st.info("EE7204 / EC7205\n\nDept of EIE, University of Ruhuna\n\n"
-            "Pipeline: Preprocess → Layout → Recognise → Post-process")
+
+st.markdown('<p class="kicker">Automated Document Analysis · OCR</p>', unsafe_allow_html=True)
+st.markdown('<h1 class="title">Document OCR Pipeline</h1>', unsafe_allow_html=True)
+st.markdown('<p class="lede">A single classical computer-vision and Tesseract pipeline. '
+            'Each numbered stage below shows the actual document image as it is transformed, '
+            'so every step can be inspected.</p>', unsafe_allow_html=True)
+st.markdown('<hr class="hr">', unsafe_allow_html=True)
+
+ver = tesseract_version()
+st.markdown(f'<p class="summary">Engine: <b>Tesseract {ver}</b></p>' if ver else
+            '<p class="summary" style="color:#b04a4a">Engine: Tesseract not found — '
+            'run scripts/install_tesseract_local.sh</p>', unsafe_allow_html=True)
 
 
-st.markdown('<div class="main-header">📄 Automated Document OCR System</div>',
-            unsafe_allow_html=True)
-tab_run, tab_about = st.tabs(["🔍 Run Pipeline", "📖 About"])
+# ── input ────────────────────────────────────────────────────────────────
+st.markdown('<p class="seclabel">Source document</p>', unsafe_allow_html=True)
+src = st.radio("source", ["Upload image", "Generate sample invoice"],
+               horizontal=True, label_visibility="collapsed")
+image = None
+if src == "Upload image":
+    up = st.file_uploader("doc", type=["jpg", "jpeg", "png", "bmp", "tiff", "tif"],
+                          label_visibility="collapsed")
+    if up:
+        image = cv2.imdecode(np.frombuffer(up.read(), np.uint8), cv2.IMREAD_COLOR)
+else:
+    lvl = st.select_slider("Degradation", ["clean", "scan", "heavy"], value="scan")
+    if st.button("Generate invoice"):
+        st.session_state["sample"] = make_sample(lvl)
+        st.session_state.pop("trace", None)
+    image = st.session_state.get("sample")
+
+if image is not None:
+    st.image(to_rgb(fit(image, 320)), caption="loaded source")
+
+run = st.button("Run pipeline", type="primary", disabled=image is None)
+
+if run and image is not None:
+    if tesseract_version() is None:
+        st.error("Tesseract engine not available.")
+        st.stop()
+    with st.spinner("Processing…"):
+        st.session_state["trace"] = get_pipeline(lang).trace(image, analyze_layout=analyze_layout)
+        st.session_state["src_image"] = image
+
+traced = st.session_state.get("trace")
 
 
-# ══════════════════════════════════════════════════════════════════
-# RUN
-# ══════════════════════════════════════════════════════════════════
-with tab_run:
-    col_l, col_r = st.columns([1, 1], gap="large")
+# ── walkthrough ──────────────────────────────────────────────────────────
+if traced:
+    res = traced["result"]
+    src_img = st.session_state.get("src_image", res["original"])
+    s = res["mean_confidence"]
 
-    with col_l:
-        st.markdown("### 📥 Input Document")
-        src = st.radio("Image source", ["Upload image", "Generate sample invoice"],
-                       horizontal=True)
-        image = None   # numpy (BGR or gray) handed to the pipeline
+    st.markdown('<hr class="hr">', unsafe_allow_html=True)
+    st.markdown(f'<p class="summary"><b>{res["word_count"]}</b> words · '
+                f'mean confidence <b>{s:.1f}%</b> · PSM <b>{res["psm_used"]}</b> · '
+                f'<b>{len(res["regions"])}</b> regions · '
+                f'<b>{len(res["fields"])}</b> fields · '
+                f'<b>{res["metrics"]["total_s"]:.2f}s</b></p>', unsafe_allow_html=True)
 
-        if src == "Upload image":
-            up = st.file_uploader("Choose a document image",
-                                  type=["jpg", "jpeg", "png", "bmp", "tiff", "tif"])
-            if up:
-                arr = np.frombuffer(up.read(), np.uint8)
-                image = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-                st.image(gray_to_rgb(image), caption="Uploaded document",
-                         use_container_width=True)
-        else:
-            level = st.select_slider("Degradation", ["clean", "scan", "heavy"],
-                                     value="scan")
-            if st.button("🎲 Generate invoice"):
-                st.session_state["sample"] = make_sample_invoice(level)
-            if "sample" in st.session_state:
-                image = st.session_state["sample"]
-                st.image(image, caption="Generated invoice", use_container_width=True)
+    st.markdown('<p class="seclabel">Pipeline walkthrough</p>', unsafe_allow_html=True)
 
-        run = st.button("🚀 Run OCR Pipeline", type="primary", disabled=image is None)
+    n = 1
+    h, w = src_img.shape[:2]
+    section(f"{n:02d}", "Input document",
+            f"{w}×{h}px · {1 if src_img.ndim == 2 else src_img.shape[2]} ch",
+            "The raw source handed to the pipeline.")
+    st.image(to_rgb(fit(src_img)))
+    n += 1
 
-    with col_r:
-        st.markdown("### 📊 Results")
-        if run and image is not None:
-            if tesseract_version() is None:
-                st.error("Tesseract is not available – cannot run OCR.")
-                st.stop()
-            with st.spinner("Running pipeline…"):
-                pipe = get_pipeline(lang)
-                result = pipe.run(image, analyze_layout=analyze_layout)
-            proc = result["processed_image"]
+    for stage in traced["pre_stages"]:
+        section(f"{n:02d}", stage["title"], stage_meta(stage), stage["desc"])
+        st.image(to_rgb(fit(stage["image"])))
+        n += 1
 
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Words", result["word_count"])
-            m2.metric("Confidence", f"{result['mean_confidence']:.1f}%")
-            m3.metric("Regions", len(result["regions"]))
-            m4.metric("Time", f"{result['metrics']['total_s']:.2f}s")
+    proc = res["processed_image"]
+    disp = fit(proc)
 
-            v1, v2, v3, v4 = st.tabs(["Preprocessing", "Layout", "Recognition", "Output"])
+    if res["regions"]:
+        from collections import Counter
+        counts = Counter(r["type"] for r in res["regions"])
+        meta = " · ".join(f"{c} {t}" for t, c in counts.items())
+        section(f"{n:02d}", "Layout analysis", meta,
+                "Connected components and morphological smearing classify regions.")
+        st.image(draw_regions(disp, scale_boxes(res["regions"], proc, disp)))
+        n += 1
 
-            with v1:
-                st.markdown('<span class="stage-badge">Stage 1</span> Preprocessing',
-                            unsafe_allow_html=True)
-                st.image(gray_to_rgb(proc), caption="OCR-ready image "
-                         "(deskewed, upscaled, denoised)", use_container_width=True)
-                st.json(result["preprocess_info"])
+    boxes = scale_boxes(res["word_boxes"], proc, disp)
+    section(f"{n:02d}", "Recognition",
+            f"{res['word_count']} words · mean conf {s:.1f}%",
+            "Adaptive-PSM Tesseract. Boxes: green ≥75%, amber ≥50%, red below.")
+    st.image(draw_word_boxes(disp, boxes))
+    n += 1
 
-            with v2:
-                st.markdown('<span class="stage-badge">Stage 2</span> Layout Analysis',
-                            unsafe_allow_html=True)
-                if result["regions"]:
-                    st.image(draw_regions(proc, result["regions"]),
-                             caption=f"{len(result['regions'])} regions",
-                             use_container_width=True)
-                    from collections import Counter
-                    counts = Counter(r["type"] for r in result["regions"])
-                    cols = st.columns(len(counts) or 1)
-                    for c, (t, n) in zip(cols, counts.items()):
-                        c.metric(t, n)
-                else:
-                    st.info("Layout analysis disabled or no regions found.")
+    section(f"{n:02d}", "Structured output", output_format.upper(),
+            "Safe clean-up, field extraction and serialisation.")
+    for k, v in res["fields"].items():
+        st.markdown(f'<div class="kv"><span class="k">{k.replace("_", " ")}</span>'
+                    f'<span class="v">{v}</span></div>', unsafe_allow_html=True)
+    st.markdown('<div class="ds" style="margin-top:.8rem">Recognised text</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="ocr">{res["text"] or "—"}</div>', unsafe_allow_html=True)
+    out = export_result(res, output_format)
+    mime = {"json": "application/json", "txt": "text/plain", "csv": "text/csv"}
+    st.download_button(f"Download .{output_format}", out,
+                       file_name=f"ocr_result.{output_format}", mime=mime[output_format])
+else:
+    st.caption("Load a document and press Run pipeline to trace it through every stage.")
 
-            with v3:
-                st.markdown('<span class="stage-badge">Stage 3</span> Recognition',
-                            unsafe_allow_html=True)
-                st.image(draw_word_boxes(proc, result["word_boxes"]),
-                         caption="Word boxes (green = high confidence, red = low) · "
-                                 f"PSM {result['psm_used']}", use_container_width=True)
-                st.caption(f"Mean confidence {result['mean_confidence']:.1f}% "
-                           f"over {result['word_count']} words")
-
-            with v4:
-                st.markdown('<span class="stage-badge">Stage 4</span> Output',
-                            unsafe_allow_html=True)
-                if result["fields"]:
-                    st.markdown("**Extracted fields:**")
-                    st.json(result["fields"])
-                st.markdown("**Recognised text:**")
-                st.text_area("text", result["text"], height=180,
-                             label_visibility="collapsed")
-                output = pipe.render(result, fmt=output_format)
-                st.markdown("**Structured output:**")
-                if output_format == "json":
-                    st.json(output)
-                else:
-                    st.code(output, language="text")
-                mime = {"json": "application/json", "txt": "text/plain", "csv": "text/csv"}
-                st.download_button(f"⬇️ Download .{output_format}", data=output,
-                                   file_name=f"ocr_result.{output_format}",
-                                   mime=mime[output_format])
-        else:
-            st.markdown('<div class="warn-box">Upload or generate a document, '
-                        'then click <b>Run OCR Pipeline</b>.</div>',
-                        unsafe_allow_html=True)
-
-
-# ══════════════════════════════════════════════════════════════════
-# ABOUT
-# ══════════════════════════════════════════════════════════════════
-with tab_about:
-    st.markdown("### 📖 Project Overview")
-    st.markdown("""
-**Automated Document Analysis and OCR System for Multi-Format Documents**
-
-*EE7204 / EC7205 – Image Processing and Computer Vision*
-*Department of Electrical and Information Engineering, University of Ruhuna*
-
-| Member | Index |
-|--------|-------|
-| Arivanan V.  | EG/2021/4414 |
-| Arivarasan J.| EG/2021/4415 |
-| Bravin K.    | EG/2021/4447 |
-| Jegan T.     | EG/2021/4590 |
-""")
-    st.markdown("### The Pipeline (one path, end to end)")
-    for title, items in [
-        ("Stage 1 – Preprocessing", [
-            "Auto-invert light-on-dark pages",
-            "Illumination flattening (rolling-ball) for uneven lighting",
-            "Projection-profile deskew",
-            "Resolution normalisation (up-scale small text to ~30 px)",
-            "Light edge-preserving denoise — grayscale kept (no harsh binarisation)",
-        ]),
-        ("Stage 2 – Layout Analysis", [
-            "Connected-component analysis (character blobs)",
-            "Morphological region smearing (fast RLSA equivalent)",
-            "Region classification: text / table / image / header-footer",
-        ]),
-        ("Stage 3 – Recognition", [
-            "Tesseract LSTM engine",
-            "Adaptive page segmentation: try PSM 4/6/3, keep the most confident",
-            "CLAHE retry pass for low-confidence (hard) scans",
-        ]),
-        ("Stage 4 – Post-Processing & Output", [
-            "Safe clean-up (de-hyphenation, spacing, currency) — never rewrites words",
-            "Invoice field extraction (number, date, total)",
-            "Structured output: JSON / TXT / CSV",
-        ]),
-    ]:
-        with st.expander(title, expanded=False):
-            for it in items:
-                st.markdown(f"- {it}")
-    st.markdown("### Accuracy")
-    st.markdown("On labelled invoices (real fonts, scan-like degradation): "
-                "**CER ≈ 0.2%**, token-F1 ≈ 98.7%. See `RESULTS.md`.")
+st.markdown('<div class="foot">Automated Document Analysis &amp; OCR · '
+            'University of Ruhuna · EE7204 / EC7205</div>', unsafe_allow_html=True)

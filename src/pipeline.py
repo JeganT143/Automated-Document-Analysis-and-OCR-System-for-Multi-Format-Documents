@@ -135,32 +135,61 @@ class OCRPreprocessor:
                              borderMode=cv2.BORDER_REPLICATE)
         return rot, angle
 
+    @staticmethod
+    def _rec(steps, key, title, desc, image, meta):
+        """Record an intermediate stage image (only when tracing)."""
+        if steps is not None:
+            steps.append({"key": key, "title": title, "desc": desc,
+                          "image": image.copy(), "meta": meta})
+
     # -- main --------------------------------------------------------------
-    def process(self, image, clahe=False):
+    def process(self, image, clahe=False, steps=None):
         gray = self.to_gray(image)
         info = {}
+        self._rec(steps, "grayscale", "Grayscale",
+                  "Reduce to a single luminance channel.", gray, {})
 
         gray, inverted = self._maybe_invert(gray)
         if inverted:
             info["inverted"] = True
+        self._rec(steps, "invert", "Polarity normalise",
+                  "Flip light-on-dark pages to dark-on-light.", gray,
+                  {"applied": bool(inverted)})
 
-        if self.do_flatten and self._needs_illumination_fix(gray):
+        need_flat = self.do_flatten and self._needs_illumination_fix(gray)
+        if need_flat:
             gray = self.flatten(gray)
             info["illumination_fixed"] = True
+        self._rec(steps, "flatten", "Illumination flatten",
+                  "Divide out an uneven-lighting background estimate.", gray,
+                  {"applied": bool(need_flat)})
 
         if clahe:
             gray = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(gray)
             info["clahe"] = True
+            self._rec(steps, "clahe", "Contrast (CLAHE)",
+                      "Adaptive local contrast for faint scans.", gray,
+                      {"applied": True})
 
+        angle = 0.0
         if self.do_deskew:
             gray, angle = self.deskew(gray)
             info["skew_angle"] = round(angle, 2)
+        self._rec(steps, "deskew", "Deskew",
+                  "Estimate and correct page rotation (projection profile).",
+                  gray, {"angle": round(angle, 2)})
 
         gray, scale = self.normalize_resolution(gray)
         info["upscale"] = round(scale, 2)
+        self._rec(steps, "upscale", "Resolution normalise",
+                  "Up-scale so text x-height hits the OCR sweet spot (~30 px).",
+                  gray, {"scale": round(scale, 2)})
 
         if self.do_denoise:
             gray = cv2.bilateralFilter(gray, 5, 35, 35)
+        self._rec(steps, "denoise", "Denoise",
+                  "Light edge-preserving smoothing; the OCR-ready image.",
+                  gray, {"applied": bool(self.do_denoise)})
 
         return gray, info
 
@@ -290,6 +319,40 @@ class DocumentOCRPipeline:
                 "total_s": round(t_lay - t0, 3),
             },
         }
+
+    def trace(self, image_or_path, analyze_layout=True):
+        """Run the pipeline while capturing the image at every stage.
+
+        Returns {"pre_stages": [...], "result": {...}} where each pre-stage is a
+        dict with the intermediate image and metadata. Used by the UI to show
+        the document at every point in the pipeline.
+        """
+        self._require_tesseract()
+        t0 = time.time()
+        image = self._load(image_or_path)
+
+        steps = []
+        proc, info = self.pre.process(image, steps=steps)
+        text, conf, score, words, psm = self._best_ocr(proc)
+        if self.do_postprocess:
+            text = self.post.process(text)
+        regions = self.layout.analyze(proc)["regions"] if analyze_layout else []
+
+        result = {
+            "text": text,
+            "words": [w["text"] for w in words],
+            "word_boxes": words,
+            "word_count": len(words),
+            "mean_confidence": round(conf, 1),
+            "psm_used": psm,
+            "fields": extract_fields(text),
+            "regions": regions,
+            "preprocess_info": info,
+            "original": image,
+            "processed_image": proc,
+            "metrics": {"total_s": round(time.time() - t0, 3)},
+        }
+        return {"pre_stages": steps, "result": result}
 
     def render(self, result, fmt="json"):
         return self.formatter.render(result, fmt=fmt)
