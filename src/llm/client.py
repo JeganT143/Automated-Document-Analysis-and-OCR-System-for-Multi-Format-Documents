@@ -24,14 +24,14 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 # change — review periodically. Prices are indicative (USD / 1M tokens) and
 # only used for the cost estimate shown in the eval report / UI.
 AVAILABLE_MODELS = [
-    {"id": "google/gemini-2.0-flash-001", "label": "Gemini 2.0 Flash",
-     "provider": "Google", "cost_per_1m_in": 0.10, "cost_per_1m_out": 0.40},
+    {"id": "google/gemini-3.5-flash-lite", "label": "Gemini 3.5 Flash Lite",
+     "provider": "Google", "cost_per_1m_in": 0.30, "cost_per_1m_out": 2.50},
     {"id": "openai/gpt-4o-mini", "label": "GPT-4o mini",
      "provider": "OpenAI", "cost_per_1m_in": 0.15, "cost_per_1m_out": 0.60},
-    {"id": "anthropic/claude-3.5-haiku", "label": "Claude 3.5 Haiku",
-     "provider": "Anthropic", "cost_per_1m_in": 0.80, "cost_per_1m_out": 4.00},
+    {"id": "anthropic/claude-haiku-4.5", "label": "Claude Haiku 4.5",
+     "provider": "Anthropic", "cost_per_1m_in": 1.00, "cost_per_1m_out": 5.00},
     {"id": "meta-llama/llama-3.3-70b-instruct", "label": "Llama 3.3 70B",
-     "provider": "Meta", "cost_per_1m_in": 0.12, "cost_per_1m_out": 0.30},
+     "provider": "Meta", "cost_per_1m_in": 0.13, "cost_per_1m_out": 0.40},
 ]
 DEFAULT_MODEL = AVAILABLE_MODELS[0]["id"]
 _MODEL_IDS = {m["id"] for m in AVAILABLE_MODELS}

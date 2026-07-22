@@ -23,6 +23,13 @@ class NotConfiguredError(RuntimeError):
     degrading."""
 
 
+class LLMCallError(RuntimeError):
+    """Raised when OpenRouter itself fails (bad/retired model id, rate
+    limit, network error, etc). Also has no safe fallback — but unlike
+    NotConfiguredError this is a runtime failure, not a setup problem, so
+    it's kept as a distinct type callers can report differently."""
+
+
 def ask(document_text: str, question: str, model: str | None = None) -> QAAnswer:
     if not client.is_configured():
         raise NotConfiguredError("OPENROUTER_API_KEY not configured")
@@ -32,5 +39,8 @@ def ask(document_text: str, question: str, model: str | None = None) -> QAAnswer
         {"role": "system", "content": _SYSTEM_PROMPT},
         {"role": "user", "content": f"DOCUMENT TEXT:\n{document_text[:6000]}\n\nQUESTION: {question}"},
     ]
-    answer = client.chat(messages, model=resolved_model, temperature=0.0, max_tokens=400)
+    try:
+        answer = client.chat(messages, model=resolved_model, temperature=0.0, max_tokens=400)
+    except Exception as e:
+        raise LLMCallError(f"OpenRouter call failed for model '{resolved_model}': {e}") from e
     return QAAnswer(answer=answer.strip(), model=resolved_model)

@@ -93,6 +93,16 @@ def answer(store: DocumentStore, session_id: str, query: str,
             answer=f"OPENROUTER_API_KEY not configured — closest matches: {listing}",
             hits=hits)
 
-    context = "\n\n".join(f"[{h.document_id}]\n{h.snippet}" for h in hits)
-    qa_result = qa.ask(context, query, model=model)
+    # Ground the answer in each hit's full OCR text, not the short `snippet`
+    # (that's meant for the UI results list, and truncating to it here was
+    # cutting documents off before fields like the total even appeared).
+    docs = [store.get(session_id, h.document_id) for h in hits]
+    context = "\n\n".join(
+        f"[{d.document_id}]\n{d.text[:3000]}" for d in docs if d is not None)
+    try:
+        qa_result = qa.ask(context, query, model=model)
+    except qa.LLMCallError as e:
+        listing = "; ".join(f"{h.document_id} (score {h.score})" for h in hits)
+        return SearchAnswer(
+            answer=f"LLM call failed ({e}) — closest matches: {listing}", hits=hits)
     return SearchAnswer(answer=qa_result.answer, hits=hits, model=qa_result.model)

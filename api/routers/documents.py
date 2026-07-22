@@ -130,3 +130,5 @@ async def ask_document(
         return llm_qa.ask(doc.text, body.question, model=body.model)
     except llm_qa.NotConfiguredError as e:
         raise HTTPException(503, str(e)) from e
+    except llm_qa.LLMCallError as e:
+        raise HTTPException(502, str(e)) from e

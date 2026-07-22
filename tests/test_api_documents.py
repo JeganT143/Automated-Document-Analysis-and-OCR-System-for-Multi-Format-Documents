@@ -158,6 +158,27 @@ def test_ask_known_document_with_mocked_llm(client, monkeypatch):
     assert resp.json()["answer"] == "$10.00"
 
 
+def test_ask_returns_502_on_llm_call_failure(client, monkeypatch):
+    files = {"file": ("sample.png", _sample_png_bytes(), "image/png")}
+    created = client.post("/v1/documents", files=files, headers={"X-Session-Id": "s1"})
+    doc_id = created.json()["id"]
+
+    from src.llm import client as llm_client
+
+    def boom(*a, **k):
+        raise RuntimeError("404 - No endpoints found for this model")
+
+    monkeypatch.setattr(llm_client, "is_configured", lambda: True)
+    monkeypatch.setattr(llm_client, "chat", boom)
+
+    resp = client.post(
+        f"/v1/documents/{doc_id}/ask",
+        json={"question": "What's the total?"},
+        headers={"X-Session-Id": "s1"},
+    )
+    assert resp.status_code == 502
+
+
 def test_session_isolation_for_ask(client):
     files = {"file": ("sample.png", _sample_png_bytes(), "image/png")}
     created = client.post("/v1/documents", files=files, headers={"X-Session-Id": "s1"})

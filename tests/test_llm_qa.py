@@ -16,9 +16,24 @@ def test_raises_when_not_configured(monkeypatch):
 def test_ask_returns_model_answer(monkeypatch):
     monkeypatch.setattr(client, "is_configured", lambda: True)
     monkeypatch.setattr(client, "chat", lambda *a, **k: "  $129.60  ")
-    result = qa.ask(DOC_TEXT, "What is the total?", model="google/gemini-2.0-flash-001")
+    result = qa.ask(DOC_TEXT, "What is the total?", model="openai/gpt-4o-mini")
     assert result.answer == "$129.60"
-    assert result.model == "google/gemini-2.0-flash-001"
+    assert result.model == "openai/gpt-4o-mini"
+
+
+def test_ask_wraps_api_errors(monkeypatch):
+    """A live bug: OpenRouter can 404 on a retired/renamed model id, or hit
+    rate limits/network errors — ask() must not let the raw SDK exception
+    propagate uncaught (it did, until this was caught via manual testing
+    against the real API)."""
+    monkeypatch.setattr(client, "is_configured", lambda: True)
+
+    def boom(*a, **k):
+        raise RuntimeError("404 - No endpoints found for this model")
+
+    monkeypatch.setattr(client, "chat", boom)
+    with pytest.raises(qa.LLMCallError, match="404"):
+        qa.ask(DOC_TEXT, "What is the total?")
 
 
 def test_ask_passes_document_and_question_into_prompt(monkeypatch):

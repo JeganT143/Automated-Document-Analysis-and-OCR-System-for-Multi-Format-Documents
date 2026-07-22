@@ -86,3 +86,43 @@ def test_answer_with_api_key_uses_qa(monkeypatch):
     assert result.answer == "vendor-a"
     assert result.model == "m"
     assert len(result.hits) == 1
+
+
+def test_answer_grounds_on_full_text_not_the_short_snippet(monkeypatch):
+    """Regression test: answer() used to ground the LLM call on the
+    280-char UI snippet, which could cut a document off before fields like
+    the total ever appeared -- caught via live testing against the real
+    API, where a search answer picked up a line-item amount instead of the
+    actual total because it never saw that part of the text."""
+    monkeypatch.setattr(client, "is_configured", lambda: True)
+    captured = {}
+
+    def fake_ask(context, query, model=None):
+        captured["context"] = context
+        return qa.QAAnswer(answer="ok", model="m")
+
+    monkeypatch.setattr(qa, "ask", fake_ask)
+    store = search.DocumentStore()
+    long_text = "vendor-a header " + ("filler line. " * 50) + "TOTAL: $999.99"
+    assert len(long_text) > 280  # would have been truncated by the old bug
+    store.add("session-1", "doc-a", long_text, summary="vendor-a short summary")
+
+    search.answer(store, "session-1", "what is the total?")
+    assert "TOTAL: $999.99" in captured["context"]
+
+
+def test_answer_degrades_gracefully_on_llm_call_error(monkeypatch):
+    """qa.ask() can raise LLMCallError (bad model id, rate limit, network
+    error) even when a key is configured -- search.answer() must not crash,
+    it should fall back to listing the retrieved hits."""
+    monkeypatch.setattr(client, "is_configured", lambda: True)
+
+    def boom(*a, **k):
+        raise qa.LLMCallError("404 - No endpoints found for this model")
+
+    monkeypatch.setattr(qa, "ask", boom)
+    store = search.DocumentStore()
+    store.add("session-1", "doc-a", "Invoice from vendor-a")
+    result = search.answer(store, "session-1", "who is the vendor?")
+    assert "doc-a" in result.answer
+    assert len(result.hits) == 1
