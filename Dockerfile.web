@@ -1,0 +1,19 @@
+# Document OCR + AI Pipeline — web (Streamlit) service.
+#
+# Deliberately dependency-light: this is a pure HTTP client of the api/
+# service (see web/api_client.py), so no OpenCV/Tesseract/OpenAI/fastembed
+# ends up in this image — it stays small and starts fast.
+
+FROM python:3.13-slim
+WORKDIR /app
+COPY requirements-web.txt .
+RUN pip install --no-cache-dir -r requirements-web.txt \
+    && useradd -m -u 1000 appuser
+
+COPY --chown=appuser:appuser web ./web
+COPY --chown=appuser:appuser .streamlit ./.streamlit
+
+ENV PYTHONUNBUFFERED=1
+USER appuser
+EXPOSE 8080
+CMD ["sh", "-c", "streamlit run web/app.py --server.port=${PORT:-8080} --server.address=0.0.0.0 --server.headless=true"]

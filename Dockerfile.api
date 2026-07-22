@@ -1,0 +1,35 @@
+# Document OCR + AI Pipeline — api service.
+#
+# Multi-stage: the builder stage has a compiler toolchain for any wheel that
+# needs one; the runtime stage only carries the installed packages + the
+# system Tesseract engine, and runs as a non-root user.
+
+FROM python:3.13-slim AS builder
+RUN apt-get update && apt-get install -y --no-install-recommends gcc \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /build
+COPY requirements-api.txt .
+RUN pip install --no-cache-dir --user -r requirements-api.txt
+
+FROM python:3.13-slim
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        tesseract-ocr libgl1 libglib2.0-0 fonts-liberation fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd -m -u 1000 appuser
+
+COPY --from=builder /root/.local /home/appuser/.local
+RUN chown -R appuser:appuser /home/appuser/.local
+
+ENV PATH=/home/appuser/.local/bin:$PATH \
+    PYTHONPATH=/app \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+WORKDIR /app
+COPY --chown=appuser:appuser src ./src
+COPY --chown=appuser:appuser api ./api
+COPY --chown=appuser:appuser scripts/make_invoice_dataset.py ./scripts/make_invoice_dataset.py
+
+USER appuser
+EXPOSE 8080
+CMD ["sh", "-c", "uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
