@@ -8,13 +8,13 @@ Command-line interface for the Document OCR pipeline.
 A thin wrapper around the single pipeline in src/pipeline.py.
 """
 
+import argparse
 import os
 import sys
-import argparse
 
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pipeline import DocumentOCRPipeline
+from src.pipeline import DocumentOCRPipeline
 
 
 def _build_arg_parser():

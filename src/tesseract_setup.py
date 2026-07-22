@@ -15,9 +15,9 @@ bundled ``libtesseract``/``libleptonica`` at run time).
 Call :func:`ensure_tesseract` once at start-up; it is idempotent.
 """
 
+import glob
 import os
 import shutil
-import glob
 
 # Local extraction prefix used by scripts/install_tesseract_local.sh
 _LOCAL_PREFIX = os.path.expanduser("~/.local/opt/tesseract")

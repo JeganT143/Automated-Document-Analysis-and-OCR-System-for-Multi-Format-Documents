@@ -1,0 +1,18 @@
+# NOTE: also requires the Tesseract *engine* (a system binary, not a pip pkg):
+#   apt-get install tesseract-ocr   (Docker image already does this — see Dockerfile.api)
+#   or bash scripts/install_tesseract_local.sh for a no-root local install
+opencv-python-headless
+numpy
+pytesseract
+pillow
+
+# API service
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.6
+pydantic-settings>=2.2
+python-multipart>=0.0.9
+
+# LLM / RAG layer
+openai>=1.30          # OpenAI-compatible client, pointed at OpenRouter
+fastembed>=0.3         # local ONNX embeddings for cross-document search (no torch)

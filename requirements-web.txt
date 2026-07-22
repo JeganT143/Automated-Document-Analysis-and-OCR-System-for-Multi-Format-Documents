@@ -1,0 +1,5 @@
+# Streamlit UI only — a pure HTTP client of the api/ service. Deliberately
+# free of opencv/pytesseract/openai/fastembed so this image stays small and
+# starts fast.
+streamlit>=1.35
+requests>=2.31

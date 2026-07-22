@@ -1,0 +1,20 @@
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+exclude = ["data", "env", ".streamlit"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]  # line length handled loosely; ruff format isn't run here
+
+[tool.ruff.lint.per-file-ignores]
+# FastAPI's dependency-injection idiom (Depends()/File()/Form() as defaults)
+# is intentional, not the mutable-default-argument bug B008 looks for.
+"api/routers/*.py" = ["B008"]
+"api/deps.py" = ["B008"]
+# Standalone scripts need sys.path set up before importing the src/ package.
+"scripts/*.py" = ["E402"]

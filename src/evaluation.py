@@ -13,7 +13,7 @@ to reading-order differences (which matter for multi-column invoices):
 import re
 from collections import Counter
 
-from postprocessing import extract_fields  # field extraction lives with post-processing
+from .postprocessing import extract_fields  # field extraction lives with post-processing
 
 
 # ---------------------------------------------------------------------------

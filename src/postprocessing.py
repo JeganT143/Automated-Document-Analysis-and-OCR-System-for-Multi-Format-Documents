@@ -13,10 +13,10 @@ Two responsibilities:
      CSV, plus best-effort extraction of key invoice fields.
 """
 
-import re
-import io
 import csv
+import io
 import json
+import re
 
 
 # ---------------------------------------------------------------------------
