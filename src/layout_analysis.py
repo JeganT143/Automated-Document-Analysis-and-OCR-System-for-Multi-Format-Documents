@@ -13,7 +13,6 @@ structured output; recognition itself is handled by the OCR engine.
 """
 
 import cv2
-import numpy as np
 
 
 class ConnectedComponentAnalyzer:

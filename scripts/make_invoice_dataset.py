@@ -14,12 +14,13 @@ Usage:
     python scripts/make_invoice_dataset.py --n 6  --degrade clean
 """
 
+import argparse
+import json
 import os
 import sys
-import json
-import argparse
-import numpy as np
+
 import cv2
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -184,7 +185,7 @@ def render_invoice(data):
     TH = 300
     draw.rectangle([50, TH - 4, 744, TH + 22], fill=228)
     for txt, x, anc in zip(["No.", "Description", "Qty", "Unit", "Amount"],
-                           COLX, ["la", "la", "ra", "la", "ra"]):
+                           COLX, ["la", "la", "ra", "la", "ra"], strict=True):
         put(txt, x, TH, size=14, bold=True, anchor=anc)
     hline(TH + 24)
 

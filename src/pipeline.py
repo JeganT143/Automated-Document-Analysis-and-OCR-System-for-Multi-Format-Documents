@@ -21,18 +21,14 @@ Public API:
     DocumentOCRPipeline().run(img)             -> result dict    (full, for UI/CLI)
 """
 
-import os
-import sys
 import time
 
 import cv2
 import numpy as np
 
-sys.path.insert(0, os.path.dirname(__file__))
-
-from tesseract_setup import ensure_tesseract
-from postprocessing import SafePostProcessor, OutputFormatter, extract_fields
-from layout_analysis import LayoutAnalyzer
+from .layout_analysis import LayoutAnalyzer
+from .postprocessing import OutputFormatter, SafePostProcessor, extract_fields
+from .tesseract_setup import ensure_tesseract
 
 
 # ---------------------------------------------------------------------------

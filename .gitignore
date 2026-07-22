@@ -1,12 +1,22 @@
 # Virtual environment
 env/
+.venv/
 
 # Python cache
 __pycache__/
 *.py[cod]
 *.pyo
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
-# Datasets (regenerable: scripts/make_invoice_dataset.py + scripts/download_invoices.py)
+# Secrets / local config
+.env
+.env.*
+!.env.example
+
+# Datasets (regenerable: scripts/make_invoice_dataset.py)
 data/
 
 # Pipeline output
