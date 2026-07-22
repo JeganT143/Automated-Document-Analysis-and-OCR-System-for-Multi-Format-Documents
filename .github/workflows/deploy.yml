@@ -1,0 +1,80 @@
+name: Deploy to Cloud Run
+
+# Keyless deploy: no service-account JSON key is stored in GitHub. Instead,
+# GCP_WIF_PROVIDER trusts OIDC tokens minted by THIS workflow for THIS repo
+# (see docs/DEPLOYMENT.md for the one-time `gcloud iam workload-identity-pools`
+# setup that establishes that trust).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  REGION: ${{ vars.GCP_REGION }}
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  REPO: docai
+  API_SERVICE: docai-api
+  WEB_SERVICE: docai-web
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+
+      - name: Build and push api image
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/api:${GITHUB_SHA}"
+          docker build -f Dockerfile.api -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "API_IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Build and push web image
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/web:${GITHUB_SHA}"
+          docker build -f Dockerfile.web -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "WEB_IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Deploy api to Cloud Run
+        run: |
+          gcloud run deploy "$API_SERVICE" \
+            --image "$API_IMAGE" \
+            --region "$REGION" \
+            --allow-unauthenticated \
+            --min-instances=0 --max-instances=3 \
+            --memory=1Gi --cpu=1 \
+            --session-affinity \
+            --set-secrets=OPENROUTER_API_KEY=openrouter-api-key:latest
+
+      - name: Deploy web to Cloud Run
+        run: |
+          API_URL=$(gcloud run services describe "$API_SERVICE" --region "$REGION" --format='value(status.url)')
+          gcloud run deploy "$WEB_SERVICE" \
+            --image "$WEB_IMAGE" \
+            --region "$REGION" \
+            --allow-unauthenticated \
+            --min-instances=0 --max-instances=3 \
+            --memory=512Mi --cpu=1 \
+            --set-env-vars="API_BASE_URL=${API_URL}"
+
+      - name: Show deployed URLs
+        run: |
+          gcloud run services describe "$API_SERVICE" --region "$REGION" --format='value(status.url)'
+          gcloud run services describe "$WEB_SERVICE" --region "$REGION" --format='value(status.url)'
