@@ -29,6 +29,15 @@ Univ. of Ruhuna) as a pure classical-CV OCR pipeline; the sections below
 marked **LLM layer** / **API** / **deployment** are a later pass that turned
 it into a full-stack, evaluated, deployed service.*
 
+## Screenshots
+
+| | |
+|---|---|
+| ![Landing page](docs/screenshots/landing.png) | ![LLM structured extraction](docs/screenshots/llm-extraction.png) |
+| Landing page — model picker, layout/extraction toggles, cross-document search | LLM structured extraction, live against OpenRouter (model badge shows which one ran) |
+| ![Pipeline walkthrough](docs/screenshots/pipeline-walkthrough.png) | ![Grounded Q&A](docs/screenshots/qa-and-search.png) |
+| Stage-by-stage pipeline walkthrough with recognition stats | Grounded Q&A — answer generated from the document's own OCR text |
+
 ---
 
 ## Why classical CV *and* an LLM, not just an LLM
