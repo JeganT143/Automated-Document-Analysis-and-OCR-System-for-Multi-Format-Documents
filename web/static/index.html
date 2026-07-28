@@ -3,7 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Classical CV/OCR pipeline with an LLM extraction, Q&amp;A and cross-document search layer on top.">
+<meta name="theme-color" content="#EEF0E4">
 <title>Document OCR + AI Pipeline</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='6' fill='%23EEF0E4'/%3E%3Crect x='9' y='8' width='14' height='18' rx='1.5' fill='none' stroke='%232B4B7E' stroke-width='2'/%3E%3Cline x1='9' y1='16' x2='23' y2='16' stroke='%232B4B7E' stroke-width='2'/%3E%3Cline x1='12' y1='11.5' x2='18' y2='11.5' stroke='%232B4B7E' stroke-width='1.4' stroke-linecap='round'/%3E%3Cline x1='12' y1='20.5' x2='20' y2='20.5' stroke='%232B4B7E' stroke-width='1.4' stroke-linecap='round'/%3E%3Cline x1='12' y1='23' x2='17' y2='23' stroke='%232B4B7E' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -16,7 +19,7 @@
     </div>
     <hr class="hr">
 
-    <div id="api-status" class="status-bad">&#9679; checking API&hellip;</div>
+    <div id="api-status" class="status-bad">checking API&hellip;</div>
 
     <label class="field-label">LLM model</label>
     <select id="model-select" disabled><option>(none configured)</option></select>
@@ -59,7 +62,19 @@
       </div>
 
       <div id="upload-block">
-        <input type="file" id="file-input" accept=".jpg,.jpeg,.png,.bmp,.tiff,.tif">
+        <label class="dropzone" for="file-input">
+          <span class="dropzone-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+              <path d="M11 14V3M11 3L7 7M11 3L15 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M3 14v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="dropzone-text">
+            <span class="dropzone-title">Upload a document</span>
+            <span class="dropzone-hint" id="dropzone-hint">up to 10MB &middot; JPG, PNG, BMP, TIF</span>
+          </span>
+        </label>
+        <input type="file" id="file-input" accept=".jpg,.jpeg,.png,.bmp,.tiff,.tif" class="visually-hidden">
       </div>
       <div id="sample-block" style="display:none">
         <label class="field-label">Degradation</label>

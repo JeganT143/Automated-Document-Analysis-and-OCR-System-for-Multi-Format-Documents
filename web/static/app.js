@@ -158,7 +158,7 @@ function renderStage(i, stage) {
     <div class="stg"><span class="no">${String(i).padStart(2, "0")}</span>
       <span class="nm">${esc(stage.title)}</span><span class="mt">${meta}</span></div>
     <div class="ds">${esc(stage.desc)}</div>
-    <div class="stage-img"><img src="data:image/png;base64,${stage.image_png_b64}"></div>`;
+    <div class="stage-img"><img src="data:image/jpeg;base64,${stage.image_jpeg_b64}"></div>`;
 }
 
 function renderResult(result, outputFormat) {
@@ -234,14 +234,14 @@ async function init() {
   const up = await isHealthy();
   if (!up) {
     $("api-status").className = "status-bad";
-    $("api-status").innerHTML = "&#9679; API unreachable";
+    $("api-status").textContent = "API unreachable";
     $("api-down").style.display = "block";
     $("api-down").textContent = `Cannot reach the API at ${API_BASE_URL}. Is it running?`;
     $("input-section").style.display = "none";
     return;
   }
   $("api-status").className = "status-ok";
-  $("api-status").innerHTML = "&#9679; API online";
+  $("api-status").textContent = "API online";
 
   let modelsInfo;
   try {
@@ -282,6 +282,11 @@ document.querySelectorAll('input[name="source"]').forEach((radio) => {
     $("sample-block").style.display = isUpload ? "none" : "block";
     $("run-btn").disabled = true;
     $("preview-img").style.display = "none";
+    if (isUpload) {
+      $("file-input").value = "";
+      $("dropzone-hint").textContent = "up to 10MB · JPG, PNG, BMP, TIF";
+      document.querySelector(".dropzone").classList.remove("has-file");
+    }
   });
 });
 
@@ -292,6 +297,8 @@ $("file-input").addEventListener("change", () => {
   $("preview-img").src = url;
   $("preview-img").style.display = "block";
   $("run-btn").disabled = false;
+  $("dropzone-hint").textContent = `${file.name} &middot; ${(file.size / 1e6).toFixed(1)} MB`.replace("&middot;", "·");
+  document.querySelector(".dropzone").classList.add("has-file");
 });
 
 $("generate-btn").addEventListener("click", async () => {
