@@ -12,8 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends gcc \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /build
 COPY requirements-api.txt .
-RUN pip install --no-cache-dir --user -r requirements-api.txt \
-    && pip install --no-cache-dir --user awslambdaric
+RUN pip install --no-cache-dir -r requirements-api.txt awslambdaric
 
 FROM python:3.13-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -21,17 +20,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && useradd -m -u 1000 appuser
 
-COPY --from=builder /root/.local /home/appuser/.local
-RUN chown -R appuser:appuser /home/appuser/.local
+# Installed into the interpreter's default global site-packages (not
+# `pip install --user`) so it's on sys.path unconditionally — no PYTHONPATH
+# or HOME dependency, which real AWS Lambda execution doesn't reliably
+# propagate the way plain `docker run` does (cost an earlier "No module
+# named awslambdaric" failure that only reproduced in actual Lambda).
+COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 
-ENV PATH=/home/appuser/.local/bin:$PATH \
-    PYTHONPATH=/app \
+ENV PYTHONPATH=/app \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /app
 COPY --chown=appuser:appuser src ./src
 COPY --chown=appuser:appuser api ./api
+COPY --chown=appuser:appuser scripts ./scripts
 
 USER appuser
 ENTRYPOINT ["python", "-m", "awslambdaric"]
