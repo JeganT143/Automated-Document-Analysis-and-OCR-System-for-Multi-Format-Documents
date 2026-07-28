@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Document OCR + AI Pipeline</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sb-block">
+      <b>Document OCR + AI Pipeline</b><br>
+      Classical CV/OCR core + an LLM extraction / RAG layer over OpenRouter.<br>
+      <a href="https://github.com/JeganT143/Automated-Document-Analysis-and-OCR-System-for-Multi-Format-Documents">Source</a>
+    </div>
+    <hr class="hr">
+
+    <div id="api-status" class="status-bad">&#9679; checking API&hellip;</div>
+
+    <label class="field-label">LLM model</label>
+    <select id="model-select" disabled><option>(none configured)</option></select>
+    <div id="llm-warning" class="caption" style="display:none; margin-top:.4rem">
+      No OPENROUTER_API_KEY on the server &mdash; extraction falls back to the
+      regex extractor, and Q&amp;A/search are unavailable.
+    </div>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="run-extraction"><label for="run-extraction">Run LLM structured extraction</label>
+    </div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="analyze-layout" checked><label for="analyze-layout">Layout analysis</label>
+    </div>
+
+    <label class="field-label">Output format</label>
+    <select id="output-format">
+      <option value="json">json</option>
+      <option value="txt">txt</option>
+      <option value="csv">csv</option>
+    </select>
+  </aside>
+
+  <main class="main">
+    <p class="kicker">Automated Document Analysis &middot; OCR + LLM</p>
+    <h1 class="title">Document OCR + AI Pipeline</h1>
+    <p class="lede">Classical computer-vision preprocessing and Tesseract OCR,
+      with an optional LLM structured-extraction, grounded Q&amp;A and
+      cross-document search layer on top. Every stage below shows the actual
+      document image as the API transforms it.</p>
+    <hr class="hr">
+
+    <div id="api-down" class="error-box" style="display:none"></div>
+
+    <div id="input-section">
+      <p class="seclabel">Source document</p>
+      <div class="radio-row">
+        <label><input type="radio" name="source" value="upload" checked> Upload image</label>
+        <label><input type="radio" name="source" value="sample"> Generate sample invoice</label>
+      </div>
+
+      <div id="upload-block">
+        <input type="file" id="file-input" accept=".jpg,.jpeg,.png,.bmp,.tiff,.tif">
+      </div>
+      <div id="sample-block" style="display:none">
+        <label class="field-label">Degradation</label>
+        <select id="degrade-level">
+          <option value="clean">clean</option>
+          <option value="scan" selected>scan</option>
+          <option value="heavy">heavy</option>
+        </select>
+        <button id="generate-btn" style="margin-top:.6rem">Generate invoice</button>
+      </div>
+
+      <img id="preview-img" class="preview-img" style="display:none">
+
+      <div style="margin-top:1rem">
+        <button id="run-btn" class="primary" disabled>Run pipeline</button>
+      </div>
+    </div>
+
+    <div id="result-section"></div>
+
+    <hr class="hr">
+    <p class="seclabel">Search across this session's documents</p>
+    <p id="doc-count" class="caption">0 document(s) processed in this session
+      (in-memory on the server, cleared on restart).</p>
+    <input type="text" id="search-query" placeholder="e.g. Which invoice has the highest total?">
+    <div style="margin-top:.6rem">
+      <button id="search-btn" disabled>Search</button>
+    </div>
+    <div id="search-result"></div>
+
+    <div class="foot">Document OCR + AI Pipeline &middot; classical CV/OCR core,
+      LLM extraction + RAG layer via OpenRouter.</div>
+  </main>
+</div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

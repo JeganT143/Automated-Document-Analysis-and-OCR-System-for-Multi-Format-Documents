@@ -12,6 +12,7 @@ uvicorn[standard]>=0.29
 pydantic>=2.6
 pydantic-settings>=2.2
 python-multipart>=0.0.9
+mangum>=0.17          # ASGI adapter for AWS Lambda (see api/lambda_handler.py)
 
 # LLM / RAG layer
 openai>=1.30          # OpenAI-compatible client, pointed at OpenRouter

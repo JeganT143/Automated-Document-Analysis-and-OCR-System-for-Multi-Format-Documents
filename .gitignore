@@ -22,6 +22,9 @@ data/
 # Pipeline output
 output/
 
+# Internal-only docs (eval results, deployment notes) — kept locally, not published
+internal/
+
 # Jupyter checkpoints
 .ipynb_checkpoints/
 

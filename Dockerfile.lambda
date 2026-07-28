@@ -1,0 +1,38 @@
+# Document OCR + AI Pipeline — api service, packaged for AWS Lambda.
+#
+# Same Debian + Tesseract base as Dockerfile.api (deliberately NOT the
+# Amazon Linux `public.ecr.aws/lambda/python` base — Tesseract isn't readily
+# available there, and apt-get already gets it here). Made Lambda-compatible
+# per AWS's documented "custom base image" pattern: add the Lambda Runtime
+# Interface Client (awslambdaric) and point ENTRYPOINT/CMD at it instead of
+# uvicorn. See api/lambda_handler.py for the Mangum-wrapped handler.
+
+FROM python:3.13-slim AS builder
+RUN apt-get update && apt-get install -y --no-install-recommends gcc \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /build
+COPY requirements-api.txt .
+RUN pip install --no-cache-dir --user -r requirements-api.txt \
+    && pip install --no-cache-dir --user awslambdaric
+
+FROM python:3.13-slim
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        tesseract-ocr libgl1 libglib2.0-0 fonts-liberation fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd -m -u 1000 appuser
+
+COPY --from=builder /root/.local /home/appuser/.local
+RUN chown -R appuser:appuser /home/appuser/.local
+
+ENV PATH=/home/appuser/.local/bin:$PATH \
+    PYTHONPATH=/app \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+WORKDIR /app
+COPY --chown=appuser:appuser src ./src
+COPY --chown=appuser:appuser api ./api
+
+USER appuser
+ENTRYPOINT ["python", "-m", "awslambdaric"]
+CMD ["api.lambda_handler.handler"]

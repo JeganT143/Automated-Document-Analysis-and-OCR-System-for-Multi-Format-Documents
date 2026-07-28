@@ -1,0 +1,71 @@
+name: Deploy to AWS
+
+# Keyless deploy: no long-lived AWS access key is stored in GitHub. Instead,
+# AWS_DEPLOY_ROLE_ARN trusts OIDC tokens minted by THIS workflow for THIS
+# repo (see internal/DEPLOYMENT.md for the one-time IAM OIDC provider + role
+# setup that establishes that trust) — same keyless philosophy as the
+# now-superseded GCP Workload Identity Federation setup in deploy.yml.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  ECR_REPO_URI: ${{ vars.ECR_REPO_URI }}
+  LAMBDA_FUNCTION_NAME: ${{ vars.LAMBDA_FUNCTION_NAME }}
+  S3_BUCKET: ${{ vars.S3_BUCKET }}
+  CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        run: aws ecr get-login-password --region "$AWS_REGION" \
+              | docker login --username AWS --password-stdin "${ECR_REPO_URI%%/*}"
+
+      - name: Build and push the API image
+        run: |
+          IMAGE="${ECR_REPO_URI}:${GITHUB_SHA}"
+          docker build -f Dockerfile.lambda -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Update the Lambda function
+        run: |
+          aws lambda update-function-code \
+            --function-name "$LAMBDA_FUNCTION_NAME" \
+            --image-uri "$IMAGE" \
+            --region "$AWS_REGION"
+          aws lambda wait function-updated \
+            --function-name "$LAMBDA_FUNCTION_NAME" --region "$AWS_REGION"
+
+      - name: Deploy the static frontend
+        run: |
+          API_URL=$(aws lambda get-function-url-config \
+            --function-name "$LAMBDA_FUNCTION_NAME" --region "$AWS_REGION" \
+            --query FunctionUrl --output text)
+          sed -i "s#http://localhost:8010#${API_URL%/}#" web/static/config.js
+          aws s3 sync web/static/ "s3://${S3_BUCKET}/" --delete
+          aws cloudfront create-invalidation \
+            --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" --paths "/*"
+
+      - name: Show deployed URLs
+        run: |
+          aws lambda get-function-url-config --function-name "$LAMBDA_FUNCTION_NAME" \
+            --region "$AWS_REGION" --query FunctionUrl --output text
+          aws cloudfront get-distribution --id "$CLOUDFRONT_DISTRIBUTION_ID" \
+            --query 'Distribution.DomainName' --output text

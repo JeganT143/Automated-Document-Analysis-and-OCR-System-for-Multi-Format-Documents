@@ -1,13 +1,13 @@
 name: Deploy to Cloud Run
 
-# Keyless deploy: no service-account JSON key is stored in GitHub. Instead,
-# GCP_WIF_PROVIDER trusts OIDC tokens minted by THIS workflow for THIS repo
-# (see docs/DEPLOYMENT.md for the one-time `gcloud iam workload-identity-pools`
-# setup that establishes that trust).
+# SUPERSEDED — this project deploys to AWS now (see
+# .github/workflows/deploy-aws.yml and internal/DEPLOYMENT.md). Never
+# actually run: GCP_WIF_PROVIDER/GCP_DEPLOY_SERVICE_ACCOUNT secrets were
+# never configured. Disabled (no automatic trigger) rather than deleted, in
+# case Cloud Run is revisited later — the one-time GCP setup this depended
+# on is preserved in internal/DEPLOYMENT-gcp.md.bak.
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch: {}
 
 permissions:
