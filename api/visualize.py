@@ -51,10 +51,14 @@ def draw_word_boxes(gray: np.ndarray, boxes: list[dict]) -> np.ndarray:
     return vis
 
 
-def encode_png_b64(img: np.ndarray) -> str:
-    """cv2.imencode writes a valid PNG for both 2-D grayscale and 3-D BGR
-    arrays — no forced colour-space conversion needed here."""
-    ok, buf = cv2.imencode(".png", img)
+def encode_jpeg_b64(img: np.ndarray, quality: int = 85) -> str:
+    """JPEG, not PNG: these are display-only trace images (never fed back
+    into the pipeline), and PNG's lossless DEFLATE compresses noisy/degraded
+    scan content badly — 9 stages of "scan"-degraded PNGs blew past AWS
+    Lambda's 6MB response payload limit (measured ~6.8MB) even after each
+    image was already downscaled by fit(). JPEG q85 cuts that by ~80%.
+    cv2.imencode handles both 2-D grayscale and 3-D BGR arrays."""
+    ok, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, quality])
     if not ok:
-        raise RuntimeError("PNG encode failed")
+        raise RuntimeError("JPEG encode failed")
     return base64.b64encode(buf.tobytes()).decode("ascii")

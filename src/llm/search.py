@@ -12,6 +12,7 @@ one visitor's uploaded invoice would be searchable/citable by a different
 concurrent visitor.
 """
 
+import logging
 import threading
 import time
 from collections import OrderedDict
@@ -20,8 +21,10 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from . import client, qa
-from .embeddings import embed_one
+from .embeddings import EMBEDDING_DIM, embed_one
 from .schemas import SearchAnswer, SearchHit
+
+logger = logging.getLogger(__name__)
 
 MAX_SESSIONS = 50
 MAX_DOCS_PER_SESSION = 20
@@ -46,7 +49,16 @@ class DocumentStore:
     def add(self, session_id: str, document_id: str, text: str,
             summary: str | None = None) -> None:
         summary = (summary or text)[:2000]
-        vec = embed_one(summary)
+        try:
+            vec = embed_one(summary)
+        except Exception:
+            # Same "never let a secondary feature break the primary result"
+            # rule as the LLM extraction fallback: OCR + extraction already
+            # succeeded by the time we get here, so a broken embedding
+            # backend degrades this document's search relevance to zero
+            # rather than failing the whole /v1/documents request.
+            logger.exception("embedding failed for document %s; storing with a zero vector", document_id)
+            vec = np.zeros(EMBEDDING_DIM, dtype=np.float32)
         with self._lock:
             session = self._sessions.setdefault(session_id, OrderedDict())
             self._sessions.move_to_end(session_id)
@@ -68,7 +80,11 @@ class DocumentStore:
             docs = list(session.values()) if session else []
         if not docs:
             return []
-        query_vec = embed_one(query)
+        try:
+            query_vec = embed_one(query)
+        except Exception:
+            logger.exception("embedding the search query failed")
+            return []
         scored = [(float(np.dot(query_vec, d.embedding)), d) for d in docs]
         scored.sort(key=lambda t: t[0], reverse=True)
         return [

@@ -38,7 +38,7 @@ def _build_stages(traced: dict) -> list[Stage]:
         key="input", title="Input document",
         desc="The raw source handed to the pipeline.",
         meta={"size": f'{result["original"].shape[1]}x{result["original"].shape[0]}'},
-        image_png_b64=visualize.encode_png_b64(visualize.fit(result["original"])),
+        image_jpeg_b64=visualize.encode_jpeg_b64(visualize.fit(result["original"])),
     )]
 
     for s in traced["pre_stages"]:
@@ -46,7 +46,7 @@ def _build_stages(traced: dict) -> list[Stage]:
         stages.append(Stage(
             key=s["key"], title=s["title"], desc=s["desc"],
             meta={**s["meta"], "size": f"{w}x{h}"},
-            image_png_b64=visualize.encode_png_b64(visualize.fit(s["image"])),
+            image_jpeg_b64=visualize.encode_jpeg_b64(visualize.fit(s["image"])),
         ))
 
     proc = result["processed_image"]
@@ -58,7 +58,7 @@ def _build_stages(traced: dict) -> list[Stage]:
             key="layout", title="Layout analysis",
             desc="Connected components and morphological smearing classify regions.",
             meta={"regions": len(result["regions"])},
-            image_png_b64=visualize.encode_png_b64(visualize.draw_regions(disp, boxes)),
+            image_jpeg_b64=visualize.encode_jpeg_b64(visualize.draw_regions(disp, boxes)),
         ))
 
     word_boxes = visualize.scale_boxes(result["word_boxes"], proc.shape, disp.shape)
@@ -66,7 +66,7 @@ def _build_stages(traced: dict) -> list[Stage]:
         key="recognition", title="Recognition",
         desc="Adaptive-PSM Tesseract. Boxes: green ≥75%, amber ≥50%, red below.",
         meta={"words": result["word_count"], "mean_confidence": result["mean_confidence"]},
-        image_png_b64=visualize.encode_png_b64(visualize.draw_word_boxes(disp, word_boxes)),
+        image_jpeg_b64=visualize.encode_jpeg_b64(visualize.draw_word_boxes(disp, word_boxes)),
     ))
     return stages
 

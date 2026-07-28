@@ -16,7 +16,7 @@ class Stage(BaseModel):
     title: str
     desc: str
     meta: dict
-    image_png_b64: str
+    image_jpeg_b64: str
 
 
 class WordBox(BaseModel):

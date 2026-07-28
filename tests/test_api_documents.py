@@ -94,7 +94,7 @@ def test_create_document_returns_stages_and_fields(client):
     assert "recognition" in stage_keys
     assert "layout" in stage_keys
     # every stage image should be non-empty base64
-    assert all(s["image_png_b64"] for s in body["stages"])
+    assert all(s["image_jpeg_b64"] for s in body["stages"])
 
 
 def test_create_document_empty_file_rejected(client):
